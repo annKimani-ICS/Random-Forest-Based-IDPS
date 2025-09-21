@@ -1,0 +1,11 @@
+# Ignore all datasets
+data/**
+!data/.gitkeep   # allow an empty placeholder file
+
+# Ignore model artifacts
+models/**
+!models/.gitkeep
+
+# Ignore environment and credentials
+*.env
+*.json
