@@ -3,8 +3,14 @@ data/**
 !data/.gitkeep   # allow an empty placeholder file
 
 # Ignore model artifacts
-models/**
-!models/.gitkeep
+# Models
+*.pkl
+notebooks/models/
+models/
+
+# datasets
+data/
+*.csv
 
 # Ignore environment and credentials
 *.env
