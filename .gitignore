@@ -5,7 +5,19 @@ data/**
 # Ignore model artifacts
 models/**
 !models/.gitkeep
+notebooks/models/**
+notebooks/reports/**
+
+# Ignore large pickle files
+*.pkl
 
 # Ignore environment and credentials
 *.env
+.env*
+!.env.example
+
+# Ignore specific large files
 *.json
+!package.json
+!config/*.yaml
+!**/feature_selection*.json

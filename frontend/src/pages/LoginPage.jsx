@@ -1,0 +1,91 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import './LoginPage.css';
+
+function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await login(email, password);
+      
+      if (result.mfa_required) {
+        // Navigate to MFA page with ticket
+        navigate('/mfa-verify', { state: { mfa_ticket: result.mfa_ticket } });
+      } else {
+        // Success - redirect to dashboard
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.response?.data?.detail || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-box">
+        <div className="login-header">
+          <h1>IDS/IDPS</h1>
+          <p>Admin Dashboard</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="login-form">
+          {error && <div className="error-message">{error}</div>}
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@ids-idps.com"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <p className="demo-credentials">
+            Demo credentials:<br />
+            <strong>Admin:</strong> admin@ids-idps.com / Admin123!<br />
+            <strong>Analyst:</strong> analyst@ids-idps.com / Analyst123!
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default LoginPage;
+
