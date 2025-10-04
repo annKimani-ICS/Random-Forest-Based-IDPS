@@ -34,8 +34,11 @@ sudo apt install -y \
     libpq-dev \
     build-essential \
     git curl wget \
-    qt5-default \
-    libxcb-xinerama0
+    qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools \
+    libxcb-xinerama0 \
+    libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+    libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xkb1 \
+    libxkbcommon-x11-0
 
 echo -e "${GREEN}[3/10] Setting up time synchronization (CRITICAL for 2FA)...${NC}"
 sudo timedatectl set-ntp true
