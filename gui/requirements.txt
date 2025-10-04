@@ -1,0 +1,9 @@
+PyQt5==5.15.10
+PyQt5-Qt5==5.15.2
+PyQt5-sip==12.13.0
+requests==2.31.0
+pyqtgraph==0.13.3
+qrcode[pil]==7.4.2
+Pillow==10.1.0
+matplotlib==3.8.2
+

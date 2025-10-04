@@ -10,6 +10,11 @@ models/**
 !models/imputer_iteration4.pkl
 !models/label_encoder_iteration3.pkl
 !models/.gitkeep
+notebooks/models/**
+notebooks/reports/**
+
+# Ignore large pickle files
+*.pkl
 
 # Ignore notebooks model outputs (except iteration 4)
 notebooks/models/**
