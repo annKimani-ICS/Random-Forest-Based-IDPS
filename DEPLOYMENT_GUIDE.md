@@ -180,13 +180,13 @@ sudo ufw status
 
 **Admin Account:**
 - Email: `admin@ids-idps.com`
-- Password: `Admin123!`
+- Password: `[Generated during setup - check /tmp/ids_idps_credentials.txt]`
 
 **Analyst Account:**
 - Email: `analyst@ids-idps.com`
-- Password: `Analyst123!`
+- Password: `[Generated during setup - check /tmp/ids_idps_credentials.txt]`
 
-⚠️ **Change these passwords immediately in production!**
+⚠️ **Passwords are generated securely during installation. Save them immediately!**
 
 ---
 
@@ -480,7 +480,7 @@ sudo swapon /swapfile
 **1. Login Flow (2 minutes)**
 ```
 → Open browser: http://VM_IP
-→ Enter: admin@ids-idps.com / Admin123!
+→ Enter: admin@ids-idps.com / [Generated password]
 → Show: MFA challenge screen
 → Open Google Authenticator on phone
 → Enter 6-digit code
@@ -520,7 +520,7 @@ sudo swapon /swapfile
 **5. RBAC Demonstration (2 minutes)**
 ```
 → Logout admin
-→ Login as: analyst@ids-idps.com / Analyst123!
+→ Login as: analyst@ids-idps.com / [Generated password]
 → Show analyst CAN: view alerts, acknowledge, create blocks
 → Show analyst CANNOT: access Settings, User Management
 → Attempt to navigate to /settings → redirected
