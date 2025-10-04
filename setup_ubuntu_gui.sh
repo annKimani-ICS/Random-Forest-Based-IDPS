@@ -127,8 +127,11 @@ fi
 
 echo -e "${GREEN}[8/10] Initializing database and seeding data...${NC}"
 if [ -f "seed_data.py" ]; then
-    python3 seed_data.py
+    # Run seeding and capture output to save passwords
+    python3 seed_data.py 2>&1 | tee /tmp/ids_idps_credentials.txt
     echo -e "${GREEN}Database seeded successfully${NC}"
+    echo -e "${YELLOW}Credentials saved to: /tmp/ids_idps_credentials.txt${NC}"
+    echo -e "${YELLOW}Please save these credentials securely!${NC}"
 else
     echo -e "${YELLOW}Warning: seed_data.py not found. Skipping database seeding.${NC}"
 fi
@@ -222,11 +225,11 @@ echo ""
 echo -e "${YELLOW}Default Login Credentials:${NC}"
 echo "  Admin User:"
 echo "    Email: admin@ids-idps.com"
-echo "    Password: Admin123!"
+echo "    Password: [Generated during setup - check .env file]"
 echo ""
 echo "  Analyst User:"
 echo "    Email: analyst@ids-idps.com"
-echo "    Password: Analyst123!"
+echo "    Password: [Generated during setup - check .env file]"
 echo ""
 echo -e "${GREEN}Starting Desktop GUI Application...${NC}"
 echo ""

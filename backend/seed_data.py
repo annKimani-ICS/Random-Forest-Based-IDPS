@@ -24,9 +24,21 @@ def seed_database():
         
         # 1. Create users
         print("Creating users...")
+        
+        # Generate secure random passwords
+        import secrets
+        import string
+        
+        def generate_password(length=12):
+            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+            return ''.join(secrets.choice(alphabet) for _ in range(length))
+        
+        admin_password = generate_password()
+        analyst_password = generate_password()
+        
         admin_user = User(
             email="admin@ids-idps.com",
-            password_hash=hash_password("Admin123!"),
+            password_hash=hash_password(admin_password),
             role=UserRole.ADMIN,
             is_active=True
         )
@@ -34,7 +46,7 @@ def seed_database():
         
         analyst_user = User(
             email="analyst@ids-idps.com",
-            password_hash=hash_password("Analyst123!"),
+            password_hash=hash_password(analyst_password),
             role=UserRole.ANALYST,
             is_active=True
         )
@@ -153,13 +165,15 @@ def seed_database():
         print(f"  ✓ Created {len(malicious_ips)} block rules")
         
         print("\n✅ Database seeded successfully!")
-        print("\n📝 Login Credentials:")
+        print("\n📝 Login Credentials (SAVE THESE SECURELY):")
         print("  Admin:")
-        print("    Email: admin@ids-idps.com")
-        print("    Password: Admin123!")
+        print(f"    Email: admin@ids-idps.com")
+        print(f"    Password: {admin_password}")
         print("\n  Analyst:")
-        print("    Email: analyst@ids-idps.com")
-        print("    Password: Analyst123!")
+        print(f"    Email: analyst@ids-idps.com")
+        print(f"    Password: {analyst_password}")
+        print("\n⚠️  IMPORTANT: Save these passwords securely!")
+        print("   They will not be displayed again.")
         
     except Exception as e:
         print(f"❌ Error seeding database: {e}")

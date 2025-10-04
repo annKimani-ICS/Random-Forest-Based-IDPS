@@ -237,11 +237,11 @@ Update backend to send email alerts:
 source ~/ids-idps/.venv/bin/activate
 pip install aiosmtplib
 
-# Add to .env
-echo "SMTP_HOST=smtp.gmail.com" >> ~/ids-idps/.env
+# Add to .env (replace with your actual SMTP credentials)
+echo "SMTP_HOST=your-smtp-server.com" >> ~/ids-idps/.env
 echo "SMTP_PORT=587" >> ~/ids-idps/.env
-echo "SMTP_USER=your-email@gmail.com" >> ~/ids-idps/.env
-echo "SMTP_PASSWORD=your-app-password" >> ~/ids-idps/.env
+echo "SMTP_USER=your-email@domain.com" >> ~/ids-idps/.env
+echo "SMTP_PASSWORD=your-secure-password" >> ~/ids-idps/.env
 
 # Restart service
 sudo systemctl restart ids-idps
