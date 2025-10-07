@@ -166,7 +166,7 @@ if [ -f "$SCRIPT_DIR/backend/.env" ]; then
         pass
     else
         # Try default credentials
-        if PGPASSWORD="SecureIDS2024!Pass" psql -U ids_user -d ids_idps_db -h localhost -c "SELECT 1" &>/dev/null 2>&1; then
+        if PGPASSWORD="[DEFAULT_PASSWORD]" psql -U ids_user -d ids_idps_db -h localhost -c "SELECT 1" &>/dev/null 2>&1; then
             pass
         else
             fail "Cannot connect to database"

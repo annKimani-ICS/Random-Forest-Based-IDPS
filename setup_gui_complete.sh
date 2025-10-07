@@ -49,7 +49,7 @@ fi
 # Database configuration
 DB_NAME="ids_idps_db"
 DB_USER="ids_user"
-DB_PASSWORD="SecureIDS2024!Pass"
+DB_PASSWORD="[DEFAULT_DB_PASSWORD]"
 
 # Prompt for custom database password (optional)
 read -p "$(echo -e ${YELLOW}Use default database password? [Y/n]: ${NC})" USE_DEFAULT_DB_PASS

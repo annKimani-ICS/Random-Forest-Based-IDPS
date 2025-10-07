@@ -179,11 +179,11 @@ Creating block rules...
 📝 Login Credentials (SAVE THESE SECURELY):
   Admin:
     Email: admin@ids-idps.com
-    Password: Xy9#mK2pL5qR8vT
+    Password: [Generated during setup]
 
   Analyst:
     Email: analyst@ids-idps.com
-    Password: Bw4$nJ7xC3zQ6hM
+    Password: [Generated during setup]
 
 ⚠️  IMPORTANT: Save these passwords securely!
    They will not be displayed again.
