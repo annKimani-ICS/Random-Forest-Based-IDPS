@@ -141,7 +141,7 @@ class LoginWindow(QWidget):
         form_layout.addWidget(email_label)
         
         self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("admin@ids-idps.com")
+        self.email_input.setPlaceholderText("Enter your email")
         self.email_input.setFixedHeight(40)
         self.email_input.setStyleSheet("""
             QLineEdit {
@@ -217,11 +217,11 @@ class LoginWindow(QWidget):
         demo_title.setFont(QFont("Arial", 9, QFont.Bold))
         demo_layout.addWidget(demo_title)
         
-        demo_admin = QLabel("Admin: admin@ids-idps.com / [Generated during setup]")
+        demo_admin = QLabel("Admin: Check setup output for credentials")
         demo_admin.setFont(QFont("Courier", 8))
         demo_layout.addWidget(demo_admin)
         
-        demo_analyst = QLabel("Analyst: analyst@ids-idps.com / [Generated during setup]")
+        demo_analyst = QLabel("Analyst: Check setup output for credentials")
         demo_analyst.setFont(QFont("Courier", 8))
         demo_layout.addWidget(demo_analyst)
         

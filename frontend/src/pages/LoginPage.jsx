@@ -52,7 +52,7 @@ function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@ids-idps.com"
+              placeholder="Enter your email"
               required
               autoFocus
             />
@@ -78,8 +78,8 @@ function LoginPage() {
         <div className="login-footer">
           <p className="demo-credentials">
             Demo credentials:<br />
-            <strong>Admin:</strong> admin@ids-idps.com / [Generated during setup]<br />
-            <strong>Analyst:</strong> analyst@ids-idps.com / [Generated during setup]
+            <strong>Admin:</strong> admin@ids-idps.com / [Generated during setup]<br /> //Check setup output for generated credentials
+            <strong>Analyst:</strong> analyst@ids-idps.com / [Generated during setup] //Check setup output for generated credentials
           </p>
         </div>
       </div>

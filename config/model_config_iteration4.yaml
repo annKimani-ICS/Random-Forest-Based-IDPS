@@ -1,0 +1,72 @@
+best_algorithm: Voting Ensemble
+classes:
+- -2
+- -1
+- 0
+- 1
+feature_selection_path: ..\models\feature_selection_iteration4.json
+hyperparameters:
+  bootstrap: true
+  ccp_alpha: 0.0
+  class_weight: balanced
+  criterion: gini
+  max_depth: 20
+  max_features: sqrt
+  max_leaf_nodes: null
+  max_samples: null
+  min_impurity_decrease: 0.0
+  min_samples_leaf: 2
+  min_samples_split: 5
+  min_weight_fraction_leaf: 0.0
+  monotonic_cst: null
+  n_estimators: 200
+  n_jobs: -1
+  oob_score: false
+  random_state: 42
+  verbose: 0
+  warm_start: false
+imputer_path: ..\models\imputer_iteration4.pkl
+model_path: ..\models\best_rf_iteration4_voting_ensemble.pkl
+notes: Iteration 4 - Advanced Random Forest optimization with Voting Ensemble achieving
+  0.9051 F1-score
+removed_identifier_columns:
+- 'Unnamed: 0'
+- Flow ID
+- ' Source IP'
+- ' Source Port'
+- ' Destination IP'
+- ' Destination Port'
+- ' Timestamp'
+scaler_path: ..\models\scaler_iteration4.pkl
+selected_features:
+- hour
+- day_of_week
+- ' Packet Length Mean'
+- ' Fwd Packet Length Max'
+- ' Average Packet Size'
+- ' Subflow Fwd Bytes'
+- ' Fwd Packet Length Mean'
+- ' Max Packet Length'
+- ' Min Packet Length'
+- ' Fwd Packet Length Min'
+- Flow Bytes/s
+- Total Length of Fwd Packets
+- ' Avg Fwd Segment Size'
+- ' Fwd Header Length'
+- ' min_seg_size_forward'
+- total_header_length
+- header_length_ratio
+- ' Fwd Header Length.1'
+- Fwd Packets/s
+- ' Flow Packets/s'
+- ' Fwd IAT Mean'
+- ' Fwd IAT Max'
+- ' Flow Duration'
+- ' Flow IAT Max'
+- Fwd IAT Total
+- ' act_data_pkt_fwd'
+- ' Flow IAT Min'
+- Subflow Fwd Packets
+- ' Flow IAT Mean'
+- ' Fwd IAT Min'
+target: ' Label'

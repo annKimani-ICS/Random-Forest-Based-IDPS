@@ -186,7 +186,7 @@ sudo ufw status
 - Email: `analyst@ids-idps.com`
 - Password: `[Generated during setup]`
 
-⚠️ **Change these passwords immediately in production!**
+⚠️ **Passwords are generated securely during installation. Save them immediately!**
 
 ---
 
@@ -520,7 +520,7 @@ sudo swapon /swapfile
 **5. RBAC Demonstration (2 minutes)**
 ```
 → Logout admin
-→ Login as: analyst@ids-idps.com / [Generated during setup]
+→ Login as: analyst@ids-idps.com / [Generated password]
 → Show analyst CAN: view alerts, acknowledge, create blocks
 → Show analyst CANNOT: access Settings, User Management
 → Attempt to navigate to /settings → redirected

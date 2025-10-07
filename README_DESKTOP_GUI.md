@@ -245,7 +245,7 @@ python3 main.py
 | **Admin** | admin@ids-idps.com | [Generated during setup] |
 | **Analyst** | analyst@ids-idps.com | [Generated during setup] |
 
-⚠️ **Change these immediately in production!**
+⚠️ **Passwords are generated securely during installation. Check setup output for actual credentials.**
 
 ## GUI Features
 
@@ -461,7 +461,7 @@ sudo systemctl status ids-idps-backend
 ```
 
 ### 2. Login with 2FA (2 min)
-- Enter admin@ids-idps.com / [Generated during setup]
+- Enter admin@ids-idps.com / [Generated password]
 - Show 2FA dialog appears (if enabled)
 - Enter Google Authenticator code
 - Successfully login to dashboard
@@ -492,7 +492,7 @@ sudo systemctl status ids-idps-backend
 
 ### 6. RBAC Demo (2 min)
 - Logout admin
-- Login as analyst@ids-idps.com
+- Login as analyst@ids-idps.com / [Generated password]
 - Show analyst can view/ACK/block
 - Show Settings and Users tabs are hidden
 - Explain role-based access control
