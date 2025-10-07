@@ -180,11 +180,11 @@ sudo ufw status
 
 **Admin Account:**
 - Email: `admin@ids-idps.com`
-- Password: `[Generated during setup - check /tmp/ids_idps_credentials.txt]`
+- Password: `[Generated during setup]`
 
 **Analyst Account:**
 - Email: `analyst@ids-idps.com`
-- Password: `[Generated during setup - check /tmp/ids_idps_credentials.txt]`
+- Password: `[Generated during setup]`
 
 ⚠️ **Passwords are generated securely during installation. Save them immediately!**
 
@@ -241,7 +241,7 @@ pip install aiosmtplib
 echo "SMTP_HOST=your-smtp-server.com" >> ~/ids-idps/.env
 echo "SMTP_PORT=587" >> ~/ids-idps/.env
 echo "SMTP_USER=your-email@domain.com" >> ~/ids-idps/.env
-echo "SMTP_PASSWORD=your-secure-password" >> ~/ids-idps/.env
+echo "SMTP_PASSWORD=[YOUR_SECURE_PASSWORD]" >> ~/ids-idps/.env
 
 # Restart service
 sudo systemctl restart ids-idps
@@ -480,7 +480,7 @@ sudo swapon /swapfile
 **1. Login Flow (2 minutes)**
 ```
 → Open browser: http://VM_IP
-→ Enter: admin@ids-idps.com / [Generated password]
+→ Enter: admin@ids-idps.com / [Generated during setup]
 → Show: MFA challenge screen
 → Open Google Authenticator on phone
 → Enter 6-digit code

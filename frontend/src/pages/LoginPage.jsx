@@ -78,8 +78,8 @@ function LoginPage() {
         <div className="login-footer">
           <p className="demo-credentials">
             Demo credentials:<br />
-            <strong>Check setup output for generated credentials</strong><br />
-            <em>Passwords are generated securely during installation</em>
+            <strong>Admin:</strong> admin@ids-idps.com / [Generated during setup]<br /> //Check setup output for generated credentials
+            <strong>Analyst:</strong> analyst@ids-idps.com / [Generated during setup] //Check setup output for generated credentials
           </p>
         </div>
       </div>
