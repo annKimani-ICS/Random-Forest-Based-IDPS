@@ -96,7 +96,7 @@ sudo apt install -y \
 sudo -u postgres psql
 
 # In PostgreSQL shell:
-CREATE USER ids_user WITH PASSWORD 'your_secure_password';
+CREATE USER ids_user WITH PASSWORD '[YOUR_SECURE_PASSWORD]';
 CREATE DATABASE ids_idps_db OWNER ids_user;
 GRANT ALL PRIVILEGES ON DATABASE ids_idps_db TO ids_user;
 \q
@@ -116,7 +116,7 @@ pip install -r requirements.txt
 
 # Create .env file
 cat > .env <<EOF
-DATABASE_URL=postgresql+psycopg2://ids_user:your_secure_password@localhost:5432/ids_idps_db
+DATABASE_URL=postgresql+psycopg2://ids_user:[YOUR_SECURE_PASSWORD]@localhost:5432/ids_idps_db
 JWT_SECRET=$(openssl rand -hex 32)
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=15
@@ -242,8 +242,8 @@ python3 main.py
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Admin** | admin@ids-idps.com | Admin123! |
-| **Analyst** | analyst@ids-idps.com | Analyst123! |
+| **Admin** | admin@ids-idps.com | [Generated during setup] |
+| **Analyst** | analyst@ids-idps.com | [Generated during setup] |
 
 ⚠️ **Change these immediately in production!**
 
@@ -461,7 +461,7 @@ sudo systemctl status ids-idps-backend
 ```
 
 ### 2. Login with 2FA (2 min)
-- Enter admin@ids-idps.com / Admin123!
+- Enter admin@ids-idps.com / [Generated during setup]
 - Show 2FA dialog appears (if enabled)
 - Enter Google Authenticator code
 - Successfully login to dashboard

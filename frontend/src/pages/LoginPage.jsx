@@ -78,8 +78,8 @@ function LoginPage() {
         <div className="login-footer">
           <p className="demo-credentials">
             Demo credentials:<br />
-            <strong>Admin:</strong> admin@ids-idps.com / Admin123!<br />
-            <strong>Analyst:</strong> analyst@ids-idps.com / Analyst123!
+            <strong>Admin:</strong> admin@ids-idps.com / [Generated during setup]<br />
+            <strong>Analyst:</strong> analyst@ids-idps.com / [Generated during setup]
           </p>
         </div>
       </div>

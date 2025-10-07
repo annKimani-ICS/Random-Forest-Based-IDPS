@@ -217,11 +217,11 @@ class LoginWindow(QWidget):
         demo_title.setFont(QFont("Arial", 9, QFont.Bold))
         demo_layout.addWidget(demo_title)
         
-        demo_admin = QLabel("Admin: admin@ids-idps.com / Admin123!")
+        demo_admin = QLabel("Admin: admin@ids-idps.com / [Generated during setup]")
         demo_admin.setFont(QFont("Courier", 8))
         demo_layout.addWidget(demo_admin)
         
-        demo_analyst = QLabel("Analyst: analyst@ids-idps.com / Analyst123!")
+        demo_analyst = QLabel("Analyst: analyst@ids-idps.com / [Generated during setup]")
         demo_analyst.setFont(QFont("Courier", 8))
         demo_layout.addWidget(demo_analyst)
         
