@@ -31,7 +31,11 @@ def seed_database():
         
         def generate_password(length=12):
             alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-            return ''.join(secrets.choice(alphabet) for _ in range(length))
+            password = ''.join(secrets.choice(alphabet) for _ in range(length))
+            # Ensure password is not longer than 72 bytes for bcrypt
+            if len(password.encode('utf-8')) > 72:
+                password = password[:60]  # Truncate to 60 chars to be safe
+            return password
         
         admin_password = generate_password()
         analyst_password = generate_password()
