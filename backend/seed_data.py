@@ -22,6 +22,21 @@ def seed_database():
     try:
         print("🌱 Seeding database...")
         
+        # Clear existing data first
+        print("Clearing existing data...")
+        try:
+            db.query(UserMFA).delete()
+            db.query(Alert).delete()
+            db.query(BlockRule).delete()
+            db.query(Threshold).delete()
+            db.query(Model).delete()
+            db.query(User).delete()
+            db.commit()
+            print("✓ Existing data cleared")
+        except Exception as e:
+            print(f"Note: Some tables may not exist yet: {e}")
+            db.rollback()
+        
         # 1. Create users
         print("Creating users...")
         

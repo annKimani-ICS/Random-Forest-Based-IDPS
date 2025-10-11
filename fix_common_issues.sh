@@ -360,9 +360,33 @@ except Exception as e:
     print(f'Error creating tables: {e}')
 " 2>/dev/null
         
-        # Seed the database
-        echo "  → Seeding database..."
-        python3 seed_data.py 2>/dev/null || echo "  → Seeding failed, but tables created"
+        # Clear and seed the database
+        echo "  → Clearing and seeding database..."
+        python3 seed_data.py 2>/dev/null || {
+            echo "  → Seeding failed, trying to clear database first..."
+            # Try to clear database manually
+            python3 -c "
+from app.database import SessionLocal
+from app.models import User, UserMFA, Model, Threshold, Alert, BlockRule
+try:
+    db = SessionLocal()
+    db.query(UserMFA).delete()
+    db.query(Alert).delete()
+    db.query(BlockRule).delete()
+    db.query(Threshold).delete()
+    db.query(Model).delete()
+    db.query(User).delete()
+    db.commit()
+    print('Database cleared successfully')
+except Exception as e:
+    print(f'Clear failed: {e}')
+    db.rollback()
+finally:
+    db.close()
+" 2>/dev/null
+            # Try seeding again
+            python3 seed_data.py 2>/dev/null || echo "  → Seeding still failed, but tables created"
+        }
         
         echo -e "  ${GREEN}✓ Fixed: Database schema and permissions${NC}"
         ((FIXES_APPLIED++))
@@ -388,6 +412,31 @@ finally:
             python3 seed_data.py 2>/dev/null
             echo -e "  ${GREEN}✓ Database seeded${NC}"
             ((FIXES_APPLIED++))
+        else
+            # Check if we have duplicate key issues
+            echo "  → Data exists, checking for issues..."
+            SEED_TEST=$(python3 -c "
+from app.database import SessionLocal
+from app.models import User
+try:
+    db = SessionLocal()
+    users = db.query(User).all()
+    if len(users) >= 2:
+        print('DATA_OK')
+    else:
+        print('INCOMPLETE_DATA')
+except Exception as e:
+    print(f'DATA_ERROR: {e}')
+finally:
+    db.close()
+" 2>/dev/null)
+            
+            if [[ "$SEED_TEST" == *"DATA_ERROR"* ]] || [[ "$SEED_TEST" == *"INCOMPLETE_DATA"* ]]; then
+                echo "  → Data issues detected, clearing and reseeding..."
+                python3 seed_data.py 2>/dev/null
+                echo -e "  ${GREEN}✓ Database reseeded${NC}"
+                ((FIXES_APPLIED++))
+            fi
         fi
     fi
     deactivate
