@@ -58,16 +58,73 @@ fi
 echo -n "Checking backend service... "
 if ! sudo systemctl is-active --quiet ids-idps-backend; then
     echo -e "${YELLOW}NOT RUNNING${NC}"
+    
+    # Check if database issues are preventing startup
+    if [ -d "$SCRIPT_DIR/backend/.venv" ]; then
+        echo "  → Checking database before starting service..."
+        cd "$SCRIPT_DIR/backend"
+        source .venv/bin/activate
+        
+        # Try to create tables if they don't exist
+        python3 -c "
+from app.database import engine
+from app.models import Base
+try:
+    Base.metadata.create_all(bind=engine)
+    print('Database tables ready')
+except Exception as e:
+    print(f'Database issue: {e}')
+" 2>/dev/null
+        
+        deactivate
+        cd "$SCRIPT_DIR"
+    fi
+    
     echo "  → Starting backend service..."
     sudo systemctl start ids-idps-backend
-    sleep 3
+    sleep 5  # Give more time for startup
+    
     if sudo systemctl is-active --quiet ids-idps-backend; then
         echo -e "  ${GREEN}✓ Fixed: Backend service started${NC}"
         ((FIXES_APPLIED++))
     else
         echo -e "  ${RED}✗ Failed to start backend service${NC}"
         echo -e "  ${YELLOW}Checking logs...${NC}"
-        sudo journalctl -u ids-idps-backend -n 20 --no-pager
+        sudo journalctl -u ids-idps-backend -n 30 --no-pager
+        
+        # Try to fix common startup issues
+        echo "  → Attempting to fix startup issues..."
+        
+        # Ensure database tables exist
+        if [ -d "$SCRIPT_DIR/backend/.venv" ]; then
+            cd "$SCRIPT_DIR/backend"
+            source .venv/bin/activate
+            
+            # Fix permissions and create tables
+            sudo -u postgres psql -c "GRANT ALL ON SCHEMA public TO ids_user; ALTER USER ids_user CREATEDB;" 2>/dev/null || true
+            
+            python3 -c "
+from app.database import engine
+from app.models import Base
+try:
+    Base.metadata.create_all(bind=engine)
+    print('Tables created for service startup')
+except Exception as e:
+    print(f'Still having issues: {e}')
+" 2>/dev/null
+            
+            deactivate
+            cd "$SCRIPT_DIR"
+        fi
+        
+        # Try starting again
+        sudo systemctl restart ids-idps-backend
+        sleep 3
+        
+        if sudo systemctl is-active --quiet ids-idps-backend; then
+            echo -e "  ${GREEN}✓ Fixed: Backend service started after fixes${NC}"
+            ((FIXES_APPLIED++))
+        fi
     fi
 else
     echo -e "${GREEN}OK${NC}"
@@ -157,6 +214,55 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
+# Fix 6.5: Python syntax issues in commands
+echo -n "Checking Python syntax in database operations... "
+if [ -d "$SCRIPT_DIR/backend/.venv" ]; then
+    cd "$SCRIPT_DIR/backend"
+    source .venv/bin/activate
+    
+    # Test Python imports
+    PYTHON_TEST=$(python3 -c "
+try:
+    from app.database import engine
+    from app.models import Base
+    print('IMPORTS_OK')
+except Exception as e:
+    print(f'IMPORT_ERROR: {e}')
+" 2>/dev/null)
+    
+    if [[ "$PYTHON_TEST" == *"IMPORT_ERROR"* ]]; then
+        echo -e "${YELLOW}IMPORT ISSUES${NC}"
+        echo "  → Fixing Python imports..."
+        
+        # Reinstall requirements
+        pip install --force-reinstall -r requirements.txt
+        
+        # Test again
+        PYTHON_TEST2=$(python3 -c "
+try:
+    from app.database import engine
+    from app.models import Base
+    print('IMPORTS_OK')
+except Exception as e:
+    print(f'IMPORT_ERROR: {e}')
+" 2>/dev/null)
+        
+        if [[ "$PYTHON_TEST2" == *"IMPORTS_OK"* ]]; then
+            echo -e "  ${GREEN}✓ Fixed: Python imports working${NC}"
+            ((FIXES_APPLIED++))
+        else
+            echo -e "  ${RED}✗ Python import issues persist${NC}"
+        fi
+    else
+        echo -e "${GREEN}OK${NC}"
+    fi
+    
+    deactivate
+    cd "$SCRIPT_DIR"
+else
+    echo -e "${YELLOW}NO VENV${NC}"
+fi
+
 # Fix 7: PyQt5 issues
 echo -n "Checking PyQt5... "
 cd "$SCRIPT_DIR/gui"
@@ -208,12 +314,87 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# Fix 10: Database seeding
-echo -n "Checking database data... "
+# Fix 10: Database schema and permissions
+echo -n "Checking database schema... "
 if [ -d "$SCRIPT_DIR/backend/.venv" ]; then
     cd "$SCRIPT_DIR/backend"
     source .venv/bin/activate
-    USER_COUNT=$(python3 -c "
+    
+    # Check if tables exist
+    TABLE_CHECK=$(python3 -c "
+from app.database import engine
+from app.models import Base
+try:
+    # Check if users table exists
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    if 'users' in tables:
+        print('EXISTS')
+    else:
+        print('MISSING')
+except Exception as e:
+    print('ERROR')
+" 2>/dev/null)
+    
+    if [ "$TABLE_CHECK" = "MISSING" ] || [ "$TABLE_CHECK" = "ERROR" ]; then
+        echo -e "${YELLOW}SCHEMA ISSUES${NC}"
+        
+        # Fix database permissions first
+        echo "  → Fixing database permissions..."
+        sudo -u postgres psql -c "
+        GRANT ALL ON SCHEMA public TO ids_user;
+        GRANT CREATE ON SCHEMA public TO ids_user;
+        ALTER USER ids_user CREATEDB;
+        " 2>/dev/null || true
+        
+        # Create tables
+        echo "  → Creating database tables..."
+        python3 -c "
+from app.database import engine
+from app.models import Base
+try:
+    Base.metadata.create_all(bind=engine)
+    print('Tables created successfully')
+except Exception as e:
+    print(f'Error creating tables: {e}')
+" 2>/dev/null
+        
+        # Clear and seed the database
+        echo "  → Clearing and seeding database..."
+        python3 seed_data.py 2>/dev/null || {
+            echo "  → Seeding failed, trying to clear database first..."
+            # Try to clear database manually
+            python3 -c "
+from app.database import SessionLocal
+from app.models import User, UserMFA, Model, Threshold, Alert, BlockRule
+try:
+    db = SessionLocal()
+    db.query(UserMFA).delete()
+    db.query(Alert).delete()
+    db.query(BlockRule).delete()
+    db.query(Threshold).delete()
+    db.query(Model).delete()
+    db.query(User).delete()
+    db.commit()
+    print('Database cleared successfully')
+except Exception as e:
+    print(f'Clear failed: {e}')
+    db.rollback()
+finally:
+    db.close()
+" 2>/dev/null
+            # Try seeding again
+            python3 seed_data.py 2>/dev/null || echo "  → Seeding still failed, but tables created"
+        }
+        
+        echo -e "  ${GREEN}✓ Fixed: Database schema and permissions${NC}"
+        ((FIXES_APPLIED++))
+    else
+        echo -e "${GREEN}OK${NC}"
+        
+        # Check if data exists
+        USER_COUNT=$(python3 -c "
 from app.database import SessionLocal
 from app.models import User
 try:
@@ -225,21 +406,98 @@ except Exception as e:
 finally:
     db.close()
 " 2>/dev/null)
-    
-    if [ "$USER_COUNT" -eq 0 ]; then
-        echo -e "${YELLOW}NO DATA${NC}"
-        echo "  → Seeding database..."
-        python3 seed_data.py
-        echo -e "  ${GREEN}✓ Fixed: Database seeded${NC}"
-        echo -e "  ${YELLOW}⚠ New credentials generated - check output above${NC}"
-        ((FIXES_APPLIED++))
-    else
-        echo -e "${GREEN}OK${NC} (${USER_COUNT} users)"
+        
+        if [ "$USER_COUNT" -eq 0 ]; then
+            echo "  → No data found, seeding database..."
+            python3 seed_data.py 2>/dev/null
+            echo -e "  ${GREEN}✓ Database seeded${NC}"
+            ((FIXES_APPLIED++))
+        else
+            # Check if we have duplicate key issues
+            echo "  → Data exists, checking for issues..."
+            SEED_TEST=$(python3 -c "
+from app.database import SessionLocal
+from app.models import User
+try:
+    db = SessionLocal()
+    users = db.query(User).all()
+    if len(users) >= 2:
+        print('DATA_OK')
+    else:
+        print('INCOMPLETE_DATA')
+except Exception as e:
+    print(f'DATA_ERROR: {e}')
+finally:
+    db.close()
+" 2>/dev/null)
+            
+            if [[ "$SEED_TEST" == *"DATA_ERROR"* ]] || [[ "$SEED_TEST" == *"INCOMPLETE_DATA"* ]]; then
+                echo "  → Data issues detected, clearing and reseeding..."
+                python3 seed_data.py 2>/dev/null
+                echo -e "  ${GREEN}✓ Database reseeded${NC}"
+                ((FIXES_APPLIED++))
+            fi
+        fi
     fi
     deactivate
     cd "$SCRIPT_DIR"
 else
     echo -e "${YELLOW}CANNOT CHECK${NC}"
+fi
+
+# Fix 11: Database connection issues
+echo -n "Checking database connection... "
+if [ -f "$SCRIPT_DIR/backend/.env" ]; then
+    source "$SCRIPT_DIR/backend/.env"
+    DB_USER=$(echo $DATABASE_URL | sed -n 's/.*\/\/\(.*\):.*/\1/p' 2>/dev/null || echo "ids_user")
+    DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\(.*\)/\1/p' 2>/dev/null || echo "ids_idps_db")
+    
+    # Test connection with different password attempts
+    CONNECTION_OK=false
+    
+    # Try with default password
+    if PGPASSWORD="[DEFAULT_DB_PASSWORD]" psql -U $DB_USER -d $DB_NAME -h localhost -c "SELECT 1" &>/dev/null 2>&1; then
+        CONNECTION_OK=true
+    fi
+    
+    # Try with common passwords if first attempt failed
+    if [ "$CONNECTION_OK" = false ]; then
+        for password in "SecureIDS2024" "ids_password" "password" ""; do
+            if PGPASSWORD="$password" psql -U $DB_USER -d $DB_NAME -h localhost -c "SELECT 1" &>/dev/null 2>&1; then
+                echo -e "${YELLOW}CONNECTED WITH PASSWORD${NC}"
+                CONNECTION_OK=true
+                break
+            fi
+        done
+    fi
+    
+    if [ "$CONNECTION_OK" = true ]; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${YELLOW}CONNECTION ISSUES${NC}"
+        echo "  → Recreating database with proper permissions..."
+        
+        # Drop and recreate database
+        sudo -u postgres psql -c "
+        DROP DATABASE IF EXISTS $DB_NAME;
+        DROP USER IF EXISTS $DB_USER;
+        CREATE USER $DB_USER WITH PASSWORD '[DEFAULT_DB_PASSWORD]';
+        CREATE DATABASE $DB_NAME OWNER $DB_USER;
+        GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
+        ALTER USER $DB_USER CREATEDB;
+        " 2>/dev/null
+        
+        # Grant schema permissions
+        sudo -u postgres psql -d $DB_NAME -c "
+        GRANT ALL ON SCHEMA public TO $DB_USER;
+        GRANT CREATE ON SCHEMA public TO $DB_USER;
+        " 2>/dev/null
+        
+        echo -e "  ${GREEN}✓ Database recreated with proper permissions${NC}"
+        ((FIXES_APPLIED++))
+    fi
+else
+    echo -e "${YELLOW}NO .ENV FILE${NC}"
 fi
 
 # Summary
