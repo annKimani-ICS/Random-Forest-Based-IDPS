@@ -43,3 +43,9 @@ notebooks/models/**
 !config/*.yaml
 !**/feature_selection*.json
 !models/feature_selection_iteration4.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
