@@ -188,6 +188,10 @@ class DashboardWindow(QMainWindow):
         alerts_tab = self.create_alerts_tab()
         self.tabs.addTab(alerts_tab, "🚨 Alerts")
         
+        # Security tab (for all users)
+        security_tab = self.create_security_tab()
+        self.tabs.addTab(security_tab, "🔐 Security")
+        
         # Settings tab (Admin only)
         if self.is_admin:
             settings_tab = self.create_settings_tab()
@@ -415,6 +419,162 @@ class DashboardWindow(QMainWindow):
         
         widget.setLayout(layout)
         return widget
+    
+    def create_security_tab(self):
+        """Create security tab for MFA management"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Account Security Section
+        security_group = QGroupBox("Account Security")
+        security_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding: 20px;
+                background-color: white;
+            }
+        """)
+        
+        security_layout = QVBoxLayout()
+        
+        # Account info
+        account_label = QLabel(f"Account: {self.user['email']}")
+        account_label.setFont(QFont("Arial", 12))
+        security_layout.addWidget(account_label)
+        
+        security_layout.addSpacing(20)
+        
+        # MFA Section
+        mfa_title = QLabel("Two-Factor Authentication (2FA)")
+        mfa_title.setFont(QFont("Arial", 14, QFont.Bold))
+        security_layout.addWidget(mfa_title)
+        
+        mfa_desc = QLabel(
+            "Two-factor authentication adds an extra layer of security to your account. "
+            "When enabled, you'll need to enter a code from your authenticator app in addition "
+            "to your password when logging in."
+        )
+        mfa_desc.setWordWrap(True)
+        mfa_desc.setStyleSheet("color: #64748b;")
+        security_layout.addWidget(mfa_desc)
+        
+        security_layout.addSpacing(15)
+        
+        # MFA Status
+        self.mfa_status_label = QLabel()
+        self.mfa_status_label.setFont(QFont("Arial", 12))
+        security_layout.addWidget(self.mfa_status_label)
+        
+        security_layout.addSpacing(10)
+        
+        # MFA Action Button
+        self.mfa_action_btn = QPushButton()
+        self.mfa_action_btn.clicked.connect(self.toggle_mfa)
+        self.mfa_action_btn.setFixedHeight(45)
+        self.mfa_action_btn.setCursor(Qt.PointingHandCursor)
+        security_layout.addWidget(self.mfa_action_btn)
+        
+        security_layout.addSpacing(20)
+        
+        # Info box
+        info_frame = QFrame()
+        info_frame.setStyleSheet("""
+            QFrame {
+                background-color: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 5px;
+                padding: 15px;
+            }
+        """)
+        info_layout = QVBoxLayout()
+        
+        info_title = QLabel("ℹ️ How to set up 2FA:")
+        info_title.setFont(QFont("Arial", 11, QFont.Bold))
+        info_layout.addWidget(info_title)
+        
+        info_text = QLabel(
+            "1. Download Google Authenticator on your phone (iOS or Android)\n"
+            "2. Click 'Enable 2FA' and scan the QR code with the app\n"
+            "3. Enter the 6-digit code from the app to complete setup\n"
+            "4. Save your recovery codes in a safe place"
+        )
+        info_text.setStyleSheet("color: #1e40af;")
+        info_layout.addWidget(info_text)
+        
+        info_frame.setLayout(info_layout)
+        security_layout.addWidget(info_frame)
+        
+        security_group.setLayout(security_layout)
+        layout.addWidget(security_group)
+        
+        layout.addStretch()
+        
+        # Update MFA status
+        self.update_mfa_status()
+        
+        widget.setLayout(layout)
+        return widget
+    
+    def update_mfa_status(self):
+        """Update MFA status display"""
+        mfa_enabled = self.user.get("mfa_enabled", False)
+        
+        if mfa_enabled:
+            self.mfa_status_label.setText("Status: ✓ Enabled")
+            self.mfa_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
+            self.mfa_action_btn.setText("🔐 2FA is Enabled")
+            self.mfa_action_btn.setEnabled(False)
+            self.mfa_action_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #10b981;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.mfa_status_label.setText("Status: ✗ Not Enabled (Recommended)")
+            self.mfa_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+            self.mfa_action_btn.setText("🔐 Enable Two-Factor Authentication")
+            self.mfa_action_btn.setEnabled(True)
+            self.mfa_action_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #2563eb;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #1e40af;
+                }
+            """)
+    
+    def toggle_mfa(self):
+        """Open MFA enrollment dialog"""
+        try:
+            # Import here to avoid circular import
+            from login_window import MFAEnrollDialog
+            
+            dialog = MFAEnrollDialog(self.api_client, self)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh user data
+                self.user = self.api_client.get_current_user()
+                self.update_mfa_status()
+                QMessageBox.information(
+                    self, 
+                    "Success", 
+                    "Two-Factor Authentication has been enabled for your account!"
+                )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to enable 2FA: {str(e)}")
     
     def create_settings_tab(self):
         """Create settings tab (Admin only)"""
