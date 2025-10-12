@@ -13,25 +13,70 @@ A **Graphical User Interface (GUI)** provides real-time traffic monitoring, aler
 - Deliver a modular, scalable solution aligned with enterprise security needs.
 
 ## 🏗️ System Features
-- **Data Preprocessing:** Cleaning, scaling, and feature engineering pipeline.
-- **Model Training:** Random Forest classifier with evaluation metrics (Accuracy, Precision, Recall, F1, AUC).
-- **Testing & Evaluation:** CIC-DDoS2019 dataset split into training/test sets; evaluated for robustness.
-- **GUI Module:** Built with PyQt5 for live monitoring, alerts, and system management.
-- **Simulation Environment:** Tested using Ubuntu VM (server) + Kali Linux VM (attack simulation).
-- **Reports & Logging:** Alerts, block rules, and system events logged for auditing.
+
+### Core Functionality
+- **Data Preprocessing:** Cleaning, scaling, and feature engineering pipeline
+- **Model Training:** Random Forest classifier with evaluation metrics (Accuracy, Precision, Recall, F1, AUC)
+- **Testing & Evaluation:** CIC-DDoS2019 dataset split into training/test sets; evaluated for robustness
+- **Real-time Detection:** Live traffic monitoring and DoS attack detection
+
+### User Interface
+- **Desktop GUI:** PyQt5-based dashboard for system management
+- **Multi-Factor Authentication:** TOTP-based 2FA with Google Authenticator
+- **User Management:** Role-based access control (Admin/Analyst)
+- **Alert Management:** Real-time alert monitoring and response
+
+### Security & Operations
+- **Automated Setup:** One-command installation and configuration
+- **Virtual Environment:** Isolated Python environment for stability
+- **Database Integration:** PostgreSQL with Alembic migrations
+- **Audit Logging:** Comprehensive event logging for security
+- **API Documentation:** Auto-generated Swagger/OpenAPI docs
 
 ## 📂 Repository Structure
+```
 Random-Forest-Based-IDPS/
 │
-├── config/ # Configuration files
-├── data/ # Local data storage (ignored via .gitignore)
-├── models/ # Trained ML models (ignored via .gitignore)
-├── notebooks/ # Jupyter/Colab notebooks for experiments
-├── reports/ # Generated evaluation reports & figures
-├── requirements.txt # Python dependencies
-├── eda_summary.md # Exploratory data analysis summary
-├── README.md # Project documentation (this file)
-└── .gitignore # Ignored files (datasets, models, logs)
+├── 🔧 Automation Scripts
+│   ├── setup.sh              # Complete project setup
+│   ├── run_backend.sh         # Start backend with venv
+│   ├── run_gui.sh            # Start GUI with venv
+│   └── run_full_system.sh    # Start both backend & GUI
+│
+├── 🖥️ GUI Application
+│   ├── gui/
+│   │   ├── main.py           # GUI entry point
+│   │   ├── login_window.py   # Login & MFA dialogs
+│   │   ├── dashboard_window.py # Main dashboard
+│   │   └── api_client.py     # Backend communication
+│
+├── ⚙️ Backend API
+│   ├── backend/
+│   │   ├── app/
+│   │   │   ├── main.py       # FastAPI application
+│   │   │   ├── auth.py       # Authentication logic
+│   │   │   ├── totp.py       # MFA implementation
+│   │   │   ├── models.py     # Database models
+│   │   │   └── routers/      # API endpoints
+│
+├── 📚 Documentation
+│   ├── README.md             # Main project docs
+│   ├── README_MFA.md         # MFA overview
+│   ├── QUICK_START_MFA.md    # Quick MFA setup
+│   ├── MFA_SETUP_GUIDE.md    # Complete MFA guide
+│   └── MFA_VISUAL_GUIDE.md   # Visual MFA walkthrough
+│
+├── 📊 Analysis & Models
+│   ├── notebooks/            # Jupyter notebooks
+│   ├── config/              # Model configurations
+│   ├── models/              # Trained ML models
+│   └── reports/             # Evaluation reports
+│
+└── 🔧 Configuration
+    ├── requirements.txt      # Python dependencies
+    ├── .gitignore          # Ignored files
+    └── venv/               # Virtual environment (created by setup)
+```
 
 
 ---
@@ -49,29 +94,102 @@ Random-Forest-Based-IDPS/
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Python 3.10+
-- Virtual environment (`venv`)
-- Kaggle API (for dataset download)
+### Quick Setup (Recommended)
 
-### Installation
-```bash
-# Clone repository
-git clone https://github.com/annKimani-ICS/Random-Forest-Based-IDPS.git
-cd Random-Forest-Based-IDPS
-```
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # (Linux/Mac)
-.venv\Scripts\activate     # (Windows PowerShell)
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/annKimani-ICS/Random-Forest-Based-IDPS.git
+   cd Random-Forest-Based-IDPS
+   ```
 
-# Install dependencies
-pip install -r requirements.txt
+2. **Run automated setup:**
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
 
-#Running
-Download and preprocess dataset (see notebooks/).
-Train model (sprint2_model_training.ipynb).
-Launch GUI for live traffic simulation and alert monitoring.
+3. **Start the system:**
+   ```bash
+   # Start backend only
+   ./run_backend.sh
+   
+   # Or start GUI only (in new terminal)
+   ./run_gui.sh
+   
+   # Or start both together
+   ./run_full_system.sh
+   ```
+
+### Manual Setup (Alternative)
+
+If you prefer manual setup or encounter issues with the automated scripts:
+
+#### Prerequisites
+- Python 3.8+ (3.10+ recommended)
+- Git
+- Virtual environment support
+
+#### Step-by-Step Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/annKimani-ICS/Random-Forest-Based-IDPS.git
+   cd Random-Forest-Based-IDPS
+   ```
+
+2. **Create virtual environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   # or
+   venv\Scripts\activate     # Windows
+   ```
+
+3. **Install backend dependencies:**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
+
+4. **Install GUI dependencies:**
+   ```bash
+   cd ../gui
+   pip install -r requirements.txt
+   ```
+
+5. **Initialize database (if needed):**
+   ```bash
+   cd ../backend
+   alembic upgrade head  # Run migrations
+   ```
+
+6. **Run the system:**
+   ```bash
+   # Terminal 1 - Backend
+   cd backend
+   source ../venv/bin/activate
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   
+   # Terminal 2 - GUI
+   cd gui
+   source ../venv/bin/activate
+   python main.py
+   ```
+
+### 🔐 Multi-Factor Authentication Setup
+
+This system includes **TOTP-based Multi-Factor Authentication** using Google Authenticator:
+
+1. **After logging in**, navigate to the **🔐 Security** tab
+2. **Click "Enable Two-Factor Authentication"**
+3. **Scan QR code** with Google Authenticator app
+4. **Enter verification code** to activate
+5. **Save recovery codes** for backup access
+
+📚 **Detailed MFA guides:**
+- `QUICK_START_MFA.md` - Quick 5-minute setup
+- `MFA_SETUP_GUIDE.md` - Complete admin guide
+- `README_MFA.md` - MFA documentation index
 
 #📊 Results (First Iteration)
 Accuracy: >99%
