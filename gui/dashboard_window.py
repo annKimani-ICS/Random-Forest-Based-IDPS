@@ -754,8 +754,9 @@ class DashboardWindow(QMainWindow):
             self.auc_label.setText(f"AUC: {metrics['auc']*100:.2f}%")
             self.trained_date_label.setText(f"Trained: {datetime.fromisoformat(metrics['trained_at']).strftime('%Y-%m-%d %H:%M')}")
             
-            # Set threshold slider
-            self.threshold_slider.setValue(int(kpis['threshold'] * 100))
+            # Set threshold slider (only if admin)
+            if hasattr(self, 'threshold_slider'):
+                self.threshold_slider.setValue(int(kpis['threshold'] * 100))
             
             # Load alerts preview
             self.load_alerts_preview()
