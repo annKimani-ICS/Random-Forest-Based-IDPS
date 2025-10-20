@@ -97,14 +97,14 @@ def update_model_metrics():
     db = SessionLocal()
     
     try:
-        # Iteration 4 metrics (matching your actual results)
+        # Iteration 4 metrics - Random Forest as primary model
         iteration4_metrics = {
             "iteration": 4,
-            "model_name": "Voting Ensemble",
-            "accuracy": 0.9048,
-            "precision": 0.9062,
-            "recall": 0.9048,
-            "f1": 0.9051,
+            "model_name": "Random Forest",
+            "accuracy": 0.9044,
+            "precision": 0.9058,
+            "recall": 0.9044,
+            "f1": 0.9047,
             "auc": 0.95,
             "holdout_accuracy": 0.8974,
             "holdout_precision": 0.8984,
@@ -116,27 +116,36 @@ def update_model_metrics():
             "max_depth": 20,
             "features_used": 30,
             "data_samples": 50000,
-            "description": "FAST Random Forest with Voting Ensemble - 90.51% F1-Score"
+            "description": "FAST Random Forest - 90.44% Accuracy, 90.47% F1-Score (Lightweight Production Model)",
+            "comparison_models": {
+                "voting_ensemble": {
+                    "accuracy": 0.9048,
+                    "precision": 0.9062,
+                    "recall": 0.9048,
+                    "f1": 0.9051,
+                    "note": "Used for comparison only"
+                }
+            }
         }
         
         # Check if iteration 4 model exists
         existing_model = db.query(Model).filter(
-            Model.version == "iteration4_voting_ensemble"
+            Model.version == "iteration4_random_forest"
         ).first()
         
         if existing_model:
-            print("✅ Updating existing Iteration 4 model...")
+            print("✅ Updating existing Iteration 4 Random Forest model...")
             existing_model.metrics = iteration4_metrics
             existing_model.trained_at = datetime(2024, 10, 15, 12, 0, 0)
-            existing_model.notes = "Best performing model - 90.48% accuracy, 90.51% F1-score"
+            existing_model.notes = "Primary production model - 90.44% accuracy, 90.47% F1-score (Lightweight)"
         else:
-            print("✅ Creating new Iteration 4 model entry...")
+            print("✅ Creating new Iteration 4 Random Forest model entry...")
             new_model = Model(
                 id=uuid.uuid4(),
-                version="iteration4_voting_ensemble",
+                version="iteration4_random_forest",
                 trained_at=datetime(2024, 10, 15, 12, 0, 0),
                 metrics=iteration4_metrics,
-                notes="Best performing model - 90.48% accuracy, 90.51% F1-score"
+                notes="Primary production model - 90.44% accuracy, 90.47% F1-score (Lightweight)"
             )
             db.add(new_model)
         

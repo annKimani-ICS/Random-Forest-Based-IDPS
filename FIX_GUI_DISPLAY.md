@@ -37,11 +37,12 @@ python scripts/populate_database.py
 ## What This Will Fix:
 
 ### **Model Performance Section:**
-- ✅ **Accuracy**: 90.48% (matches your Iteration 4)
-- ✅ **Precision**: 90.62%
-- ✅ **Recall**: 90.48%
-- ✅ **F1-Score**: 90.51%
+- ✅ **Accuracy**: 90.44% (Random Forest - Primary Production Model)
+- ✅ **Precision**: 90.58%
+- ✅ **Recall**: 90.44%
+- ✅ **F1-Score**: 90.47%
 - ✅ **AUC**: 95.00%
+- ✅ **Model Type**: Random Forest (Lightweight for Production)
 
 ### **Alerts Section:**
 - ✅ **25 realistic dummy alerts** over last 7 days
