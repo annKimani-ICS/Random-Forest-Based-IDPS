@@ -21,10 +21,11 @@ def create_dummy_alerts():
         model = db.query(Model).order_by(Model.trained_at.desc()).first()
         model_version = model.version if model else "iteration4_voting_ensemble"
         
-        # Dummy alert data
+        # DDoS/DoS attack types only (matching your project focus)
         attack_types = [
-            "DDoS", "Brute Force", "SQL Injection", "XSS", "Port Scan",
-            "Malware", "Botnet", "Phishing", "Ransomware", "Data Exfiltration"
+            "DDoS", "DoS", "DDoS Amplification", "DDoS Reflection", "DDoS Botnet",
+            "DDoS Volumetric", "DDoS Protocol", "DDoS Application", "DDoS Infrastructure",
+            "DDoS Network", "DDoS Transport", "DDoS Application Layer"
         ]
         
         statuses = ["NEW", "ACK", "BLOCKED", "CLOSED"]
