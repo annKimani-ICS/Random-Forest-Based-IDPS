@@ -838,24 +838,37 @@ class DashboardWindow(QMainWindow):
                 
                 self.alerts_table.setItem(row, 6, QTableWidgetItem(alert["status"]))
                 
-                # Action buttons
+                # Action buttons - Role-based access control
+                # Analysts: Read-only access (view alerts only)
+                # Admins: Full access (ACK, Block, modify status)
                 btn_widget = QWidget()
                 btn_layout = QHBoxLayout()
                 btn_layout.setContentsMargins(5, 2, 5, 2)
                 
-                if alert["status"] == "NEW":
+                # Acknowledge button - Admin only (Security: Only admins can modify alert status)
+                if self.is_admin and alert["status"] == "NEW":
                     ack_btn = QPushButton("ACK")
                     ack_btn.clicked.connect(lambda checked, a=alert: self.acknowledge_alert(a["id"]))
                     ack_btn.setStyleSheet("background-color: #f59e0b; color: white; border: none; padding: 5px;")
                     btn_layout.addWidget(ack_btn)
                 
-                if alert["is_malicious"] and alert["status"] in ["NEW", "ACK"]:
+                # Block button - Admin only
+                if self.is_admin and alert["is_malicious"] and alert["status"] in ["NEW", "ACK"]:
                     block_btn = QPushButton("Block")
                     block_btn.clicked.connect(lambda checked, a=alert: self.block_ip(a["src_ip"]))
                     block_btn.setStyleSheet("background-color: #ef4444; color: white; border: none; padding: 5px;")
                     btn_layout.addWidget(block_btn)
                 
-                btn_widget.setLayout(btn_layout)
+                # For analysts, show read-only indicator instead of action buttons
+                if not self.is_admin:
+                    read_only_label = QLabel("👁️ View Only")
+                    read_only_label.setStyleSheet("color: #64748b; font-style: italic; padding: 5px;")
+                    read_only_label.setAlignment(Qt.AlignCenter)
+                    btn_widget.setLayout(QHBoxLayout())
+                    btn_widget.layout().addWidget(read_only_label)
+                else:
+                    btn_widget.setLayout(btn_layout)
+                
                 self.alerts_table.setCellWidget(row, 7, btn_widget)
         
         except Exception as e:
