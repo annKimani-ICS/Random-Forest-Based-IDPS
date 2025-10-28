@@ -110,8 +110,10 @@ Random-Forest-Based-IDPS/
 
 3. **Start the system:**
    ```bash
-   # Start backend only
+   # Start backend only (defaults to port 3000; override with PORT=8000)
    ./run_backend.sh
+   # or specify a custom port
+   PORT=8000 ./run_backend.sh
    
    # Or start GUI only (in new terminal)
    ./run_gui.sh
@@ -165,10 +167,11 @@ If you prefer manual setup or encounter issues with the automated scripts:
 
 6. **Run the system:**
    ```bash
-   # Terminal 1 - Backend
+   # Terminal 1 - Backend (recommended: local venv inside backend)
    cd backend
-   source ../venv/bin/activate
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
    
    # Terminal 2 - GUI
    cd gui
