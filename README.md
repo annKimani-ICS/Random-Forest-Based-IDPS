@@ -194,25 +194,55 @@ This system includes **TOTP-based Multi-Factor Authentication** using Google Aut
 - `MFA_SETUP_GUIDE.md` - Complete admin guide
 - `README_MFA.md` - MFA documentation index
 
-#📊 Results (First Iteration)
-Accuracy: >99%
-Macro-averaged AUC: ~1.0
-Key Features: Packet size, flow duration, source port, etc.
-Robust detection of DoS attack flows in simulated corporate network settings.
+#📊 **Results (Fourth Iteration)**
+**Performance Metrics:**
+Accuracy: 90.48%
+F1-Score: 90.51%
+Precision: 90.62%
+Recall: 90.48%
+Holdout Validation F1-Score: 89.76%
+Performance Consistency: 0.0076 (Excellent)
 
-#📌 Roadmap
+**Key Features:**
+hour (0.218) - Time-based attack patterns
+day_of_week (0.182) - Weekly traffic behavior
+Fwd Packet Length Max (0.057) - Network traffic analysis
+Packet Length Mean (0.057) - Statistical network metrics
+Subflow Fwd Bytes (0.050) - Flow analysis
+Max Packet Length (0.050) - Traffic volume indicators
+Fwd Packet Length Mean (0.048) - Forward packet statistics
+Avg Fwd Segment Size (0.043) - Segment-level analysis
+Total Length of Fwd Packets (0.039) - Packet aggregation
+Average Packet Size (0.032) - Size-based detection
+
+**Technical Achievements:**
+Training Time: < 15 minutes (99%+ speed improvement)
+Data Optimization: 581K → 50K samples (91% reduction)
+Feature Selection: 87 → 30 features (65% reduction)
+Model Architecture: Voting Ensemble (Random Forest + Random Forest)
+Class Balancing: SMOTE applied for balanced training
+
+**Application/Capability:**
+High-performance detection of DDoS attack flows with real-time processing capabilities, achieving enterprise-grade accuracy while maintaining sub-15-minute training cycles for rapid model deployment and updates in production network environments.
+
+**Improvement Over Previous Iterations:**
++25.63% F1-Score improvement over Iteration 3
++20.31% Accuracy improvement over Iteration 3
+99%+ faster training compared to initial iterations
+
+#📌 **Roadmap**
  Sprint 1 – Data Cleaning & Preprocessing
  Sprint 2 – Model Training & Evaluation
  Sprint 3 – GUI Development (PyQt5 Dashboard)
  Sprint 4 – Integration with VM Simulation (Ubuntu + Kali)
  Sprint 5 – Final Evaluation & Defense
 
-#👩‍💻 Author
+#👩‍💻 **Author**:
 Kimani Ann Wangari
 BSc Informatics and Computer Science, Strathmore University, Nairobi, Kenya
 Supervisor: Mr. James Gikera
 
-#📜 License
+#📜 **License**:
 This project is for academic and research purposes only. Unauthorized use in production environments is not advised without further security hardening.
 
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/F63P1L7A)
