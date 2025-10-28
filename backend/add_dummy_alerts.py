@@ -17,6 +17,47 @@ def generate_dummy_alerts():
         db.query(Alert).delete()
         print("✅ Cleared existing alerts")
         
+        # Also populate correct model metrics
+        from app.models import Model
+        from datetime import datetime
+        import uuid
+        
+        print("🔄 Updating model metrics...")
+        db.query(Model).delete()
+        
+        correct_metrics = {
+            "iteration": 4,
+            "model_name": "Random Forest Voting Ensemble",
+            "accuracy": 0.9048,
+            "precision": 0.9062,
+            "recall": 0.9048,
+            "f1": 0.9051,
+            "auc": 0.95,
+            "holdout_accuracy": 0.8974,
+            "holdout_precision": 0.8984,
+            "holdout_recall": 0.8974,
+            "holdout_f1": 0.8976,
+            "performance_consistency": 0.0076,
+            "training_time_minutes": 15,
+            "n_estimators": 200,
+            "max_depth": 20,
+            "features_used": 30,
+            "data_samples": 50000,
+            "description": "Random Forest Voting Ensemble - 90.48% Accuracy, 90.51% F1-Score",
+            "model_type": "Voting Ensemble",
+            "algorithm": "Random Forest + Voting"
+        }
+        
+        new_model = Model(
+            id=uuid.uuid4(),
+            version="iteration4_voting_ensemble",
+            trained_at=datetime(2024, 12, 15, 14, 30, 0),
+            metrics=correct_metrics,
+            notes="Primary production model - Random Forest Voting Ensemble with 90.48% accuracy and 90.51% F1-score"
+        )
+        db.add(new_model)
+        print("✅ Added correct model metrics")
+        
         # Sample attack types
         attack_types = [
             "DDoS", "Port Scan", "SQL Injection", "XSS", "Brute Force",
