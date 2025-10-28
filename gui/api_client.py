@@ -7,7 +7,7 @@ import json
 
 
 class APIClient:
-    def __init__(self, base_url: str = "http://localhost:3000"):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.access_token: Optional[str] = None
         self.refresh_token: Optional[str] = None
