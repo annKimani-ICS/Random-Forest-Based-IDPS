@@ -77,7 +77,7 @@ def generate_dummy_alerts():
         
         # Generate alerts for the last 7 days
         alerts = []
-        base_time = datetime.utcnow()
+        base_time = datetime.now()  # Use datetime.now() instead of utcnow()
         
         for i in range(50):  # Generate 50 dummy alerts
             # Random time in last 7 days
@@ -103,8 +103,8 @@ def generate_dummy_alerts():
             # Create alert
             alert = Alert(
                 event_ts=event_time,
-                src_ip=ipaddress.ip_address(src_ip),
-                dst_ip=ipaddress.ip_address(dst_ip),
+                src_ip=src_ip,  # Store as string, not IPv4Address object
+                dst_ip=dst_ip,  # Store as string, not IPv4Address object
                 attack_type=attack_type,
                 score=score,
                 is_malicious=is_malicious,
