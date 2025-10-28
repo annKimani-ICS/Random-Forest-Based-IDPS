@@ -4,45 +4,54 @@ from datetime import datetime
 from uuid import UUID
 from .models import UserRole, AlertStatus
 
+
+# NOTE: Pydantic v2 reserves the prefix "model_" for internal use. Our
+# schemas legitimately use a field named `model_version`, which triggers a
+# warning at app startup. To suppress this harmless warning globally for our
+# API schemas, we define a project-specific base model that disables
+# protected namespaces. All API schema classes should inherit from this base.
+class AppBaseModel(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
 # Auth Schemas
-class UserCreate(BaseModel):
+class UserCreate(AppBaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     role: UserRole = UserRole.ANALYST
 
-class LoginRequest(BaseModel):
+class LoginRequest(AppBaseModel):
     email: EmailStr
     password: str
 
-class LoginResponse(BaseModel):
+class LoginResponse(AppBaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     token_type: str = "bearer"
     mfa_required: bool = False
     mfa_ticket: Optional[str] = None
 
-class MFAVerifyRequest(BaseModel):
+class MFAVerifyRequest(AppBaseModel):
     ticket: str
     otp_code: str = Field(..., min_length=6, max_length=6)
 
-class MFAEnrollResponse(BaseModel):
+class MFAEnrollResponse(AppBaseModel):
     qr_code: str
     secret: str
     provisioning_uri: str
 
-class MFAActivateRequest(BaseModel):
+class MFAActivateRequest(AppBaseModel):
     otp_code: str = Field(..., min_length=6, max_length=6)
 
-class RefreshRequest(BaseModel):
+class RefreshRequest(AppBaseModel):
     refresh_token: str
 
-class TokenResponse(BaseModel):
+class TokenResponse(AppBaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
 # User Schemas
-class UserResponse(BaseModel):
+class UserResponse(AppBaseModel):
     id: UUID
     email: str
     role: UserRole
@@ -54,12 +63,12 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class UserUpdate(BaseModel):
+class UserUpdate(AppBaseModel):
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
 
 # Alert Schemas
-class AlertResponse(BaseModel):
+class AlertResponse(AppBaseModel):
     id: int
     event_ts: datetime
     src_ip: str
@@ -74,17 +83,17 @@ class AlertResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class AlertListResponse(BaseModel):
+class AlertListResponse(AppBaseModel):
     alerts: List[AlertResponse]
     total: int
     page: int
     page_size: int
 
-class AlertUpdateStatus(BaseModel):
+class AlertUpdateStatus(AppBaseModel):
     status: AlertStatus
 
 # Model Schemas
-class ModelResponse(BaseModel):
+class ModelResponse(AppBaseModel):
     id: UUID
     version: str
     trained_at: datetime
@@ -95,7 +104,7 @@ class ModelResponse(BaseModel):
         from_attributes = True
 
 # Threshold Schemas
-class ThresholdResponse(BaseModel):
+class ThresholdResponse(AppBaseModel):
     id: UUID
     current_value: float
     updated_by: UUID
@@ -104,15 +113,15 @@ class ThresholdResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class ThresholdUpdate(BaseModel):
+class ThresholdUpdate(AppBaseModel):
     new_value: float = Field(..., ge=0.0, le=1.0)
 
 # Block Rule Schemas
-class BlockRuleCreate(BaseModel):
+class BlockRuleCreate(AppBaseModel):
     src_ip: str
     reason: Optional[str] = None
 
-class BlockRuleResponse(BaseModel):
+class BlockRuleResponse(AppBaseModel):
     id: UUID
     applied_at: datetime
     src_ip: str
@@ -124,7 +133,7 @@ class BlockRuleResponse(BaseModel):
         from_attributes = True
 
 # KPI Schemas
-class KPIResponse(BaseModel):
+class KPIResponse(AppBaseModel):
     alerts_24h: int
     active_blocks: int
     threshold: float
@@ -132,7 +141,7 @@ class KPIResponse(BaseModel):
     trained_at: datetime
 
 # Metrics Schemas
-class MetricsResponse(BaseModel):
+class MetricsResponse(AppBaseModel):
     model_version: str
     trained_at: datetime
     precision: float
@@ -142,7 +151,7 @@ class MetricsResponse(BaseModel):
     threshold: float
 
 # Audit Log Schemas
-class AuditLogResponse(BaseModel):
+class AuditLogResponse(AppBaseModel):
     id: int
     ts: datetime
     user_id: Optional[UUID]
