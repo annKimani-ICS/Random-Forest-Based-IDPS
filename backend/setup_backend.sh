@@ -57,14 +57,21 @@ try:
     # Ensure tables exist
     Base.metadata.create_all(bind=engine)
     
+    # Get passwords from environment or generate secure ones
+    import os
+    import secrets
+    
+    admin_pass = os.getenv("ADMIN_PASSWORD") or secrets.token_urlsafe(16)
+    analyst_pass = os.getenv("ANALYST_PASSWORD") or secrets.token_urlsafe(16)
+    
     # Create Admin user
     u = db.query(User).filter(User.email == "admin@ids-idps.com").first()
     if not u:
-        u = User(email="admin@ids-idps.com", password_hash=hash_password("AdminSecure2024!"), role=UserRole.ADMIN, is_active=True)
+        u = User(email="admin@ids-idps.com", password_hash=hash_password(admin_pass), role=UserRole.ADMIN, is_active=True)
         db.add(u)
         print("✅ Created admin@ids-idps.com")
     else:
-        u.password_hash = hash_password("AdminSecure2024!")
+        u.password_hash = hash_password(admin_pass)
         u.role = UserRole.ADMIN
         u.is_active = True
         print("✅ Updated admin@ids-idps.com")
@@ -73,15 +80,23 @@ try:
     # Create Analyst user
     u = db.query(User).filter(User.email == "analyst@ids-idps.com").first()
     if not u:
-        u = User(email="analyst@ids-idps.com", password_hash=hash_password("AnalystSecure2024!"), role=UserRole.ANALYST, is_active=True)
+        u = User(email="analyst@ids-idps.com", password_hash=hash_password(analyst_pass), role=UserRole.ANALYST, is_active=True)
         db.add(u)
         print("✅ Created analyst@ids-idps.com")
     else:
-        u.password_hash = hash_password("AnalystSecure2024!")
+        u.password_hash = hash_password(analyst_pass)
         u.role = UserRole.ANALYST
         u.is_active = True
         print("✅ Updated analyst@ids-idps.com")
     db.commit()
+    
+    # Print generated passwords if they were auto-generated
+    if not os.getenv("ADMIN_PASSWORD") or not os.getenv("ANALYST_PASSWORD"):
+        print("\\n🔐 Generated Credentials (save these securely):")
+        if not os.getenv("ADMIN_PASSWORD"):
+            print(f"   Admin: admin@ids-idps.com / {admin_pass}")
+        if not os.getenv("ANALYST_PASSWORD"):
+            print(f"   Analyst: analyst@ids-idps.com / {analyst_pass}")
     
     print("✅ All users created successfully")
     sys.exit(0)

@@ -36,6 +36,13 @@ notebooks/models/**
 *.env
 .env*
 !.env.example
+backend/.env.example
+**/credentials*.txt
+**/credentials*.json
+**/secrets*.env
+**/secrets*.txt
+**/secrets*.json
+**/.secrets
 
 # Ignore specific large files
 *.json

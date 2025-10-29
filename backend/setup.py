@@ -112,8 +112,36 @@ def create_users(python):
     """Create default Admin and Analyst users"""
     print("\n👤 Creating default users...")
     
+    import os
+    import secrets
+    
+    # Get passwords from environment or generate secure ones
+    admin_pass_env = os.getenv("ADMIN_PASSWORD")
+    analyst_pass_env = os.getenv("ANALYST_PASSWORD")
+    
+    # Track if passwords were generated (not from env)
+    admin_pass_generated = False
+    analyst_pass_generated = False
+    
+    if not admin_pass_env:
+        # Generate secure password (will be shown to user)
+        admin_pass = secrets.token_urlsafe(16)
+        admin_pass_generated = True
+        print(f"⚠️  ADMIN_PASSWORD not set. Generated password will be displayed.")
+    else:
+        admin_pass = admin_pass_env
+    
+    if not analyst_pass_env:
+        # Generate secure password (will be shown to user)
+        analyst_pass = secrets.token_urlsafe(16)
+        analyst_pass_generated = True
+        print(f"⚠️  ANALYST_PASSWORD not set. Generated password will be displayed.")
+    else:
+        analyst_pass = analyst_pass_env
+    
     code = f"""
 import sys
+import os
 sys.path.insert(0, '.')
 from app.database import SessionLocal, engine, Base
 from app.models import User, UserRole
@@ -124,14 +152,18 @@ try:
     # Ensure tables exist
     Base.metadata.create_all(bind=engine)
     
+    # Get passwords from environment
+    admin_pass = os.getenv("ADMIN_PASSWORD", "{admin_pass}")
+    analyst_pass = os.getenv("ANALYST_PASSWORD", "{analyst_pass}")
+    
     # Create Admin user
     u = db.query(User).filter(User.email == "admin@ids-idps.com").first()
     if not u:
-        u = User(email="admin@ids-idps.com", password_hash=hash_password("AdminSecure2024!"), role=UserRole.ADMIN, is_active=True)
+        u = User(email="admin@ids-idps.com", password_hash=hash_password(admin_pass), role=UserRole.ADMIN, is_active=True)
         db.add(u)
         print("✅ Created admin@ids-idps.com")
     else:
-        u.password_hash = hash_password("AdminSecure2024!")
+        u.password_hash = hash_password(admin_pass)
         u.role = UserRole.ADMIN
         u.is_active = True
         print("✅ Updated admin@ids-idps.com")
@@ -140,11 +172,11 @@ try:
     # Create Analyst user
     u = db.query(User).filter(User.email == "analyst@ids-idps.com").first()
     if not u:
-        u = User(email="analyst@ids-idps.com", password_hash=hash_password("AnalystSecure2024!"), role=UserRole.ANALYST, is_active=True)
+        u = User(email="analyst@ids-idps.com", password_hash=hash_password(analyst_pass), role=UserRole.ANALYST, is_active=True)
         db.add(u)
         print("✅ Created analyst@ids-idps.com")
     else:
-        u.password_hash = hash_password("AnalystSecure2024!")
+        u.password_hash = hash_password(analyst_pass)
         u.role = UserRole.ANALYST
         u.is_active = True
         print("✅ Updated analyst@ids-idps.com")
@@ -164,6 +196,15 @@ finally:
     if returncode != 0:
         print(f"❌ Failed to create users: {stderr}")
         return False
+    
+    # Print passwords if they were generated (after successful execution)
+    if admin_pass_generated or analyst_pass_generated:
+        print("\n🔐 Generated Credentials (save these securely):")
+        if admin_pass_generated:
+            print(f"   Admin: admin@ids-idps.com / {admin_pass}")
+        if analyst_pass_generated:
+            print(f"   Analyst: analyst@ids-idps.com / {analyst_pass}")
+    
     return True
 
 def update_model_metrics(python):
