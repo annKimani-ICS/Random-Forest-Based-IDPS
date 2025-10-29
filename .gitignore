@@ -34,9 +34,10 @@ notebooks/models/**
 
 # Ignore environment and credentials
 *.env
-.env*
+.env
+.env.*
 !.env.example
-backend/.env.example
+!**/.env.example
 **/credentials*.txt
 **/credentials*.json
 **/secrets*.env
