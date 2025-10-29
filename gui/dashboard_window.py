@@ -1117,10 +1117,117 @@ class DashboardWindow(QMainWindow):
         """Show create user dialog"""
         QMessageBox.information(self, "Coming Soon", "User creation dialog - to be implemented")
     
+    def update_monitoring_status(self):
+        """Update monitoring status display"""
+        if not self.is_admin or not hasattr(self, 'monitoring_status_label'):
+            return
+        
+        try:
+            status_data = self.api_client.get_monitoring_status()
+            is_monitoring = status_data.get("is_monitoring", False)
+            interface = status_data.get("interface", "N/A")
+            threshold = status_data.get("threshold", 0.50)
+            
+            if is_monitoring:
+                self.monitoring_status_label.setText("Status: ✅ ACTIVE")
+                self.monitoring_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
+                if hasattr(self, 'start_monitoring_btn'):
+                    self.start_monitoring_btn.setEnabled(False)
+                if hasattr(self, 'stop_monitoring_btn'):
+                    self.stop_monitoring_btn.setEnabled(True)
+            else:
+                self.monitoring_status_label.setText("Status: ⏸ INACTIVE")
+                self.monitoring_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+                if hasattr(self, 'start_monitoring_btn'):
+                    self.start_monitoring_btn.setEnabled(True)
+                if hasattr(self, 'stop_monitoring_btn'):
+                    self.stop_monitoring_btn.setEnabled(False)
+            
+            if hasattr(self, 'monitoring_interface_label'):
+                self.monitoring_interface_label.setText(f"Interface: {interface}")
+            if hasattr(self, 'monitoring_threshold_label'):
+                self.monitoring_threshold_label.setText(f"Threshold: {threshold:.2f}")
+            
+        except Exception as e:
+            if hasattr(self, 'monitoring_status_label'):
+                self.monitoring_status_label.setText("Status: ❌ Error")
+                self.monitoring_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+            print(f"Error updating monitoring status: {e}")
+    
+    def start_monitoring(self):
+        """Start traffic monitoring"""
+        # Get interface (default to eth0)
+        import subprocess
+        try:
+            result = subprocess.run(['ip', 'route'], capture_output=True, text=True, timeout=2)
+            default_iface = "eth0"
+            for line in result.stdout.split('\n'):
+                if 'default' in line and 'dev' in line:
+                    parts = line.split()
+                    if 'dev' in parts:
+                        idx = parts.index('dev')
+                        if idx + 1 < len(parts):
+                            default_iface = parts[idx + 1]
+                            break
+        except:
+            default_iface = "eth0"
+        
+        # Get threshold from current threshold card
+        current_threshold = 0.50
+        try:
+            threshold_text = self.threshold_card.value_label.text()
+            current_threshold = float(threshold_text)
+        except:
+            pass
+        
+        reply = QMessageBox.question(
+            self, "Start Monitoring",
+            f"Start traffic monitoring?\n\n"
+            f"Interface: {default_iface}\n"
+            f"Threshold: {current_threshold:.2f}\n\n"
+            f"This will begin real-time DDoS detection.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                self.api_client.start_monitoring(interface=default_iface, threshold=current_threshold)
+                QMessageBox.information(
+                    self, 
+                    "Success", 
+                    f"Monitoring started successfully!\n\n"
+                    f"Interface: {default_iface}\n"
+                    f"Threshold: {current_threshold:.2f}\n\n"
+                    f"You can now launch DDoS attacks from Kali VM to test detection."
+                )
+                self.update_monitoring_status()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to start monitoring:\n{str(e)}")
+                self.update_monitoring_status()
+    
+    def stop_monitoring(self):
+        """Stop traffic monitoring"""
+        reply = QMessageBox.question(
+            self, "Stop Monitoring",
+            "Stop traffic monitoring?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                self.api_client.stop_monitoring()
+                QMessageBox.information(self, "Success", "Monitoring stopped successfully")
+                self.update_monitoring_status()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to stop monitoring:\n{str(e)}")
+                self.update_monitoring_status()
+    
     def refresh_data(self):
         """Refresh all data (called by timer)"""
         try:
             self.load_data()
+            if self.is_admin and hasattr(self, 'update_monitoring_status'):
+                self.update_monitoring_status()
         except:
             pass
     
