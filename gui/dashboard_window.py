@@ -1201,6 +1201,10 @@ class DashboardWindow(QMainWindow):
             interface = status_data.get("interface", "N/A")
             threshold = status_data.get("threshold", 0.50)
             
+            # Debug logging
+            print(f"[DEBUG] Status check: is_monitoring={is_monitoring}, interface={interface}, threshold={threshold}")
+            print(f"[DEBUG] Full status response: {status_data}")
+            
             if is_monitoring:
                 self.monitoring_status_label.setText("Status: ✅ ACTIVE")
                 self.monitoring_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
@@ -1208,6 +1212,7 @@ class DashboardWindow(QMainWindow):
                     self.start_monitoring_btn.setEnabled(False)
                 if hasattr(self, 'stop_monitoring_btn'):
                     self.stop_monitoring_btn.setEnabled(True)
+                print("[DEBUG] Status updated to ACTIVE")
             else:
                 self.monitoring_status_label.setText("Status: ⏸ INACTIVE")
                 self.monitoring_status_label.setStyleSheet("color: #64748b; font-weight: bold;")
@@ -1215,6 +1220,7 @@ class DashboardWindow(QMainWindow):
                     self.start_monitoring_btn.setEnabled(True)
                 if hasattr(self, 'stop_monitoring_btn'):
                     self.stop_monitoring_btn.setEnabled(False)
+                print("[DEBUG] Status updated to INACTIVE")
             
             if hasattr(self, 'monitoring_interface_label'):
                 self.monitoring_interface_label.setText(f"Interface: {interface or 'N/A'}")
@@ -1247,7 +1253,9 @@ class DashboardWindow(QMainWindow):
             if hasattr(self, 'monitoring_threshold_label'):
                 self.monitoring_threshold_label.setText("Threshold: Unknown")
             
-            print(f"Error updating monitoring status: {e}")
+            print(f"[ERROR] Error updating monitoring status: {e}")
+            import traceback
+            traceback.print_exc()
     
     def start_monitoring(self):
         """Start traffic monitoring"""
@@ -1290,26 +1298,30 @@ class DashboardWindow(QMainWindow):
                 
                 # Give backend a moment to start the monitoring thread
                 # Retry status check a few times with delays (non-blocking)
-                def check_status_attempt(attempt_num=1, max_attempts=4):
+                def check_status_attempt(attempt_num=1, max_attempts=6):
                     """Check status with retries (non-blocking)"""
+                    print(f"[DEBUG] Status check attempt {attempt_num}/{max_attempts}")
                     try:
                         status_data = self.api_client.get_monitoring_status()
+                        print(f"[DEBUG] Status response on attempt {attempt_num}: {status_data}")
                         if status_data.get("is_monitoring", False):
                             # Status is now active, update UI
+                            print("[DEBUG] Monitoring is active, updating UI")
                             self.update_monitoring_status()
                             return
-                    except:
-                        pass
+                    except Exception as e:
+                        print(f"[DEBUG] Status check error on attempt {attempt_num}: {e}")
                     
                     # Schedule next attempt if not exceeded max attempts
                     if attempt_num < max_attempts:
-                        QTimer.singleShot(500, lambda: check_status_attempt(attempt_num + 1, max_attempts))
+                        QTimer.singleShot(1000, lambda: check_status_attempt(attempt_num + 1, max_attempts))
                     else:
                         # Final attempt after all retries
+                        print("[DEBUG] Final status update after all retries")
                         self.update_monitoring_status()
                 
-                # Start retry checks after initial delay
-                QTimer.singleShot(500, lambda: check_status_attempt(1, 4))  # 4 attempts with 500ms delays
+                # Start retry checks after initial delay (increased to 1 second)
+                QTimer.singleShot(1000, lambda: check_status_attempt(1, 6))  # 6 attempts with 1s delays
                 
                 QMessageBox.information(
                     self, 
