@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import pickle
+import joblib
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -120,11 +121,21 @@ class TrafficMonitor:
                     self.imputer = pickle.load(f)
                     print("✅ Loaded imputer")
             
-            # Load model
+            # Load model (try joblib first, fallback to pickle)
             if MODEL_FILE.exists():
-                with open(MODEL_FILE, 'rb') as f:
-                    self.model = pickle.load(f)
-                    print("✅ Loaded ML model")
+                try:
+                    # Try joblib first (better compatibility)
+                    self.model = joblib.load(MODEL_FILE)
+                    print("✅ Loaded ML model using joblib")
+                except Exception as joblib_error:
+                    print(f"⚠️  Joblib load failed: {joblib_error}, trying pickle...")
+                    try:
+                        with open(MODEL_FILE, 'rb') as f:
+                            self.model = pickle.load(f)
+                        print("✅ Loaded ML model using pickle")
+                    except Exception as pickle_error:
+                        print(f"❌ Both joblib and pickle failed: {pickle_error}")
+                        self.model = None
             else:
                 print(f"⚠️  Model file not found: {MODEL_FILE}")
                 print("   Using dummy predictions until model is available")
