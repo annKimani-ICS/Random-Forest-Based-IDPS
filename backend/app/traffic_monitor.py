@@ -376,21 +376,35 @@ class TrafficMonitor:
         print(f"   Window size: {self.window_size} seconds")
         print("   Press Ctrl+C to stop\n")
         
+        print(f"[BACKEND] Setting is_monitoring = True")
         self.is_monitoring = True
+        print(f"[BACKEND] is_monitoring is now: {self.is_monitoring}")
         
         try:
-            # Start sniffing (non-blocking)
+            # Start sniffing (blocking call)
+            print(f"[BACKEND] Calling sniff() on interface {self.interface}...")
             sniff(
                 iface=self.interface,
                 prn=self._process_packet,
                 store=False,
                 stop_filter=lambda x: not self.is_monitoring
             )
+            print(f"[BACKEND] sniff() completed")
         except KeyboardInterrupt:
-            print("\n🛑 Stopping monitoring...")
+            print("\n[BACKEND] 🛑 Stopping monitoring (KeyboardInterrupt)...")
             self.stop_monitoring()
+        except PermissionError as e:
+            print(f"[BACKEND] ❌ Permission denied - need root/sudo to capture packets: {e}")
+            self.is_monitoring = False
+            return False
+        except OSError as e:
+            print(f"[BACKEND] ❌ OSError (interface may not exist or be accessible): {e}")
+            self.is_monitoring = False
+            return False
         except Exception as e:
-            print(f"❌ Error during monitoring: {e}")
+            print(f"[BACKEND] ❌ Error during monitoring: {e}")
+            import traceback
+            traceback.print_exc()
             self.is_monitoring = False
             return False
         
@@ -399,13 +413,34 @@ class TrafficMonitor:
     def start_monitoring_async(self):
         """Start monitoring in a background thread"""
         if self.is_monitoring:
+            print("[BACKEND] Already monitoring, cannot start again")
             return False
         
         def monitor_loop():
-            self.start_monitoring()
+            """Background thread for monitoring"""
+            try:
+                print(f"[BACKEND] Starting monitoring thread for interface: {self.interface}")
+                result = self.start_monitoring()
+                if not result:
+                    print(f"[BACKEND] Monitoring failed to start")
+                else:
+                    print(f"[BACKEND] Monitoring thread completed")
+            except Exception as e:
+                print(f"[BACKEND] ERROR in monitoring thread: {e}")
+                import traceback
+                traceback.print_exc()
+                self.is_monitoring = False
         
+        print(f"[BACKEND] Creating monitoring thread...")
         self.monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
         self.monitor_thread.start()
+        print(f"[BACKEND] Monitoring thread started, thread ID: {self.monitor_thread.ident}")
+        
+        # Give thread a moment to set is_monitoring = True
+        import time
+        time.sleep(0.2)  # 200ms should be enough for thread to start and set flag
+        
+        print(f"[BACKEND] After thread start, is_monitoring = {self.is_monitoring}")
         return True
     
     def stop_monitoring(self):

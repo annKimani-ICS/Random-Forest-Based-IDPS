@@ -37,15 +37,24 @@ async def start_monitoring(
         )
     
     try:
+        print(f"[API] Creating TrafficMonitor instance with interface={interface}, threshold={threshold}")
         _monitor_instance = TrafficMonitor(interface=interface, threshold=threshold)
-        _monitor_instance.start_monitoring_async()
+        print(f"[API] TrafficMonitor created, starting async monitoring...")
+        
+        result = _monitor_instance.start_monitoring_async()
+        print(f"[API] start_monitoring_async() returned: {result}")
+        print(f"[API] After async start, is_monitoring = {_monitor_instance.is_monitoring}")
         
         return {
             "message": "Monitoring started",
             "interface": _monitor_instance.interface,
-            "threshold": threshold
+            "threshold": threshold,
+            "is_monitoring": _monitor_instance.is_monitoring  # Include status in response
         }
     except Exception as e:
+        print(f"[API] ERROR starting monitoring: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to start monitoring: {str(e)}"
