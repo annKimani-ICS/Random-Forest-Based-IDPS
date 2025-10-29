@@ -92,7 +92,7 @@ except Exception as e:
 finally:
     db.close()
 ENDPYTHON
-; then
+then
     echo -e "${GREEN}✅ Users created successfully${NC}"
 else
     echo -e "${RED}❌ Failed to create users${NC}"
