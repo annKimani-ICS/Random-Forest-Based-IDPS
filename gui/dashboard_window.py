@@ -1287,6 +1287,29 @@ class DashboardWindow(QMainWindow):
         if reply == QMessageBox.Yes:
             try:
                 self.api_client.start_monitoring(interface=default_iface, threshold=current_threshold)
+                
+                # Give backend a moment to start the monitoring thread
+                # Then retry status check a few times to ensure it's updated
+                def update_status_with_retry():
+                    """Retry status update with delay to catch async start"""
+                    import time
+                    for attempt in range(3):
+                        time.sleep(0.5)  # Wait 500ms between attempts
+                        try:
+                            status_data = self.api_client.get_monitoring_status()
+                            if status_data.get("is_monitoring", False):
+                                # Status is now active, update UI
+                                self.update_monitoring_status()
+                                return
+                        except:
+                            pass
+                    
+                    # Final attempt after retries
+                    self.update_monitoring_status()
+                
+                # Use QTimer to run status update in GUI thread
+                QTimer.singleShot(500, update_status_with_retry)  # First check after 500ms
+                
                 QMessageBox.information(
                     self, 
                     "Success", 
@@ -1295,7 +1318,10 @@ class DashboardWindow(QMainWindow):
                     f"Threshold: {current_threshold:.2f}\n\n"
                     f"You can now launch DDoS attacks from Kali VM to test detection."
                 )
+                
+                # Also update immediately (optimistic update)
                 self.update_monitoring_status()
+                
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to start monitoring:\n{str(e)}")
                 self.update_monitoring_status()
@@ -1311,8 +1337,15 @@ class DashboardWindow(QMainWindow):
         if reply == QMessageBox.Yes:
             try:
                 self.api_client.stop_monitoring()
+                
+                # Stop should be immediate, but add small delay to ensure backend processes it
+                QTimer.singleShot(300, self.update_monitoring_status)
+                
                 QMessageBox.information(self, "Success", "Monitoring stopped successfully")
+                
+                # Update immediately
                 self.update_monitoring_status()
+                
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to stop monitoring:\n{str(e)}")
                 self.update_monitoring_status()
