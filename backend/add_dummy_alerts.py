@@ -48,10 +48,13 @@ def generate_dummy_alerts():
             "algorithm": "Random Forest + Voting"
         }
         
+        # Use current date for training timestamp
+        training_date = datetime.now()
+        
         new_model = Model(
             id=uuid.uuid4(),
             version="iteration4_voting_ensemble",
-            trained_at=datetime(2024, 12, 15, 14, 30, 0),
+            trained_at=training_date,
             metrics=correct_metrics,
             notes="Primary production model - Random Forest Voting Ensemble with 90.48% accuracy and 90.51% F1-score"
         )

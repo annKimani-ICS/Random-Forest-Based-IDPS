@@ -97,10 +97,13 @@ try:
         "description": "FAST Random Forest with Voting Ensemble - 90.51% F1-Score"
     }
     
+    # Use current date for training timestamp
+    training_date = datetime.now()
+    
     new_model = Model(
         id=uuid.uuid4(),
         version="iteration4_voting_ensemble",
-        trained_at=datetime(2024, 10, 15, 12, 0, 0),
+        trained_at=training_date,
         metrics=iteration4_metrics,
         notes="Best performing model - 90.48% accuracy, 90.51% F1-score"
     )
