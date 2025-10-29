@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
     QComboBox, QMessageBox, QTabWidget, QGroupBox, QGridLayout,
-    QSlider, QFrame, QDialog, QLineEdit, QTextEdit, QSpinBox
+    QSlider, QFrame, QDialog, QLineEdit, QTextEdit, QSpinBox,
+    QScrollArea
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt5.QtGui import QFont, QColor
@@ -184,19 +185,19 @@ class DashboardWindow(QMainWindow):
             }
         """)
         
-        # Dashboard tab
+        # Dashboard tab (with scroll area)
         dashboard_tab = self.create_dashboard_tab()
         self.tabs.addTab(dashboard_tab, "📊 Dashboard")
         
-        # Alerts tab
+        # Alerts tab (with scroll area)
         alerts_tab = self.create_alerts_tab()
         self.tabs.addTab(alerts_tab, "🚨 Alerts")
         
-        # Security tab (for all users)
+        # Security tab (with scroll area)
         security_tab = self.create_security_tab()
         self.tabs.addTab(security_tab, "🔐 Security")
         
-        # Settings tab (Admin only)
+        # Settings tab (Admin only, with scroll area)
         if self.is_admin:
             settings_tab = self.create_settings_tab()
             self.tabs.addTab(settings_tab, "⚙️ Settings")
@@ -280,9 +281,23 @@ class DashboardWindow(QMainWindow):
     
     def create_dashboard_tab(self):
         """Create main dashboard tab with KPIs and charts"""
-        widget = QWidget()
+        # Create scroll area for dashboard content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
+        # Content widget
+        content_widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
         
         # KPI Cards
         kpi_layout = QHBoxLayout()
@@ -485,13 +500,26 @@ class DashboardWindow(QMainWindow):
         alerts_preview_group.setLayout(preview_layout)
         layout.addWidget(alerts_preview_group)
         
-        layout.addStretch()
+        # No stretch - let content determine size for scrolling
+        content_widget.setLayout(layout)
+        scroll_area.setWidget(content_widget)
         
-        widget.setLayout(layout)
-        return widget
+        return scroll_area
     
     def create_alerts_tab(self):
         """Create alerts management tab"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -546,10 +574,23 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(self.alerts_table)
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def create_security_tab(self):
         """Create security tab for MFA management"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -645,7 +686,8 @@ class DashboardWindow(QMainWindow):
         self.update_mfa_status()
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def update_mfa_status(self):
         """Update MFA status display"""
@@ -706,6 +748,18 @@ class DashboardWindow(QMainWindow):
     
     def create_settings_tab(self):
         """Create settings tab (Admin only)"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -816,13 +870,24 @@ class DashboardWindow(QMainWindow):
         blocks_group.setLayout(blocks_layout)
         layout.addWidget(blocks_group)
         
-        layout.addStretch()
-        
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def create_users_tab(self):
         """Create users management tab"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -857,7 +922,8 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(self.users_table)
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def on_threshold_changed(self, value):
         """Update threshold display"""
@@ -1119,8 +1185,12 @@ class DashboardWindow(QMainWindow):
     
     def update_monitoring_status(self):
         """Update monitoring status display"""
-        if not self.is_admin or not hasattr(self, 'monitoring_status_label'):
+        if not self.is_admin:
             return
+        
+        # Check if monitoring UI elements exist
+        if not hasattr(self, 'monitoring_status_label'):
+            return  # UI not yet initialized
         
         try:
             status_data = self.api_client.get_monitoring_status()
@@ -1137,21 +1207,36 @@ class DashboardWindow(QMainWindow):
                     self.stop_monitoring_btn.setEnabled(True)
             else:
                 self.monitoring_status_label.setText("Status: ⏸ INACTIVE")
-                self.monitoring_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+                self.monitoring_status_label.setStyleSheet("color: #64748b; font-weight: bold;")
                 if hasattr(self, 'start_monitoring_btn'):
                     self.start_monitoring_btn.setEnabled(True)
                 if hasattr(self, 'stop_monitoring_btn'):
                     self.stop_monitoring_btn.setEnabled(False)
             
             if hasattr(self, 'monitoring_interface_label'):
-                self.monitoring_interface_label.setText(f"Interface: {interface}")
+                self.monitoring_interface_label.setText(f"Interface: {interface or 'N/A'}")
             if hasattr(self, 'monitoring_threshold_label'):
                 self.monitoring_threshold_label.setText(f"Threshold: {threshold:.2f}")
             
         except Exception as e:
-            if hasattr(self, 'monitoring_status_label'):
-                self.monitoring_status_label.setText("Status: ❌ Error")
-                self.monitoring_status_label.setStyleSheet("color: #ef4444; font-weight: bold;")
+            # More graceful error handling
+            error_msg = str(e)
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                self.monitoring_status_label.setText("Status: ⚠️ Auth Required")
+                self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            elif "Connection" in error_msg or "timeout" in error_msg.lower():
+                self.monitoring_status_label.setText("Status: ⚠️ Backend Unavailable")
+                self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            else:
+                self.monitoring_status_label.setText("Status: ⏸ Check Backend")
+                self.monitoring_status_label.setStyleSheet("color: #64748b; font-weight: bold;")
+            
+            # Disable buttons on error
+            if hasattr(self, 'start_monitoring_btn'):
+                self.start_monitoring_btn.setEnabled(False)
+            if hasattr(self, 'stop_monitoring_btn'):
+                self.stop_monitoring_btn.setEnabled(False)
+            
             print(f"Error updating monitoring status: {e}")
     
     def start_monitoring(self):
