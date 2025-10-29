@@ -113,7 +113,7 @@ echo -e "${BLUE}📋 Step 5: Testing database connection...${NC}"
 # Test connection
 if python3 -c "
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # Read DATABASE_URL from .env
 with open('.env', 'r') as f:
@@ -125,7 +125,7 @@ with open('.env', 'r') as f:
 try:
     engine = create_engine(url, pool_pre_ping=True)
     with engine.connect() as conn:
-        conn.execute('SELECT 1')
+        conn.execute(text('SELECT 1'))
     print('✅ Database connection successful')
 except Exception as e:
     print(f'❌ Database connection failed: {e}')
