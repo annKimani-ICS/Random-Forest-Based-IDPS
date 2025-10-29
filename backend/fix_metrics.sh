@@ -97,8 +97,8 @@ try:
         "description": "FAST Random Forest with Voting Ensemble - 90.51% F1-Score"
     }
     
-    # Use current date for training timestamp
-    training_date = datetime.now()
+    # Training date: October 15, 2025
+    training_date = datetime(2025, 10, 15, 12, 0, 0)
     
     new_model = Model(
         id=uuid.uuid4(),

@@ -39,8 +39,8 @@ def update_iteration4_model():
             Model.version == "iteration4_voting_ensemble"
         ).first()
         
-        # Use current date for training timestamp
-        training_date = datetime.now()
+        # Training date: October 15, 2025
+        training_date = datetime(2025, 10, 15, 12, 0, 0)
         
         if existing_model:
             print("✅ Updating existing Iteration 4 model...")

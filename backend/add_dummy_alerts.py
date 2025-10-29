@@ -48,8 +48,8 @@ def generate_dummy_alerts():
             "algorithm": "Random Forest + Voting"
         }
         
-        # Use current date for training timestamp
-        training_date = datetime.now()
+        # Training date: October 15, 2025
+        training_date = datetime(2025, 10, 15, 12, 0, 0)
         
         new_model = Model(
             id=uuid.uuid4(),
@@ -61,11 +61,8 @@ def generate_dummy_alerts():
         db.add(new_model)
         print("✅ Added correct model metrics")
         
-        # Sample attack types
-        attack_types = [
-            "DDoS", "Port Scan", "SQL Injection", "XSS", "Brute Force",
-            "Malware", "Botnet", "Phishing", "Ransomware", "Data Exfiltration"
-        ]
+        # Only DDoS attacks
+        attack_types = ["DDoS"]
         
         # Sample IP addresses
         source_ips = [
