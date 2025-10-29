@@ -1289,26 +1289,27 @@ class DashboardWindow(QMainWindow):
                 self.api_client.start_monitoring(interface=default_iface, threshold=current_threshold)
                 
                 # Give backend a moment to start the monitoring thread
-                # Then retry status check a few times to ensure it's updated
-                def update_status_with_retry():
-                    """Retry status update with delay to catch async start"""
-                    import time
-                    for attempt in range(3):
-                        time.sleep(0.5)  # Wait 500ms between attempts
-                        try:
-                            status_data = self.api_client.get_monitoring_status()
-                            if status_data.get("is_monitoring", False):
-                                # Status is now active, update UI
-                                self.update_monitoring_status()
-                                return
-                        except:
-                            pass
+                # Retry status check a few times with delays (non-blocking)
+                def check_status_attempt(attempt_num=1, max_attempts=4):
+                    """Check status with retries (non-blocking)"""
+                    try:
+                        status_data = self.api_client.get_monitoring_status()
+                        if status_data.get("is_monitoring", False):
+                            # Status is now active, update UI
+                            self.update_monitoring_status()
+                            return
+                    except:
+                        pass
                     
-                    # Final attempt after retries
-                    self.update_monitoring_status()
+                    # Schedule next attempt if not exceeded max attempts
+                    if attempt_num < max_attempts:
+                        QTimer.singleShot(500, lambda: check_status_attempt(attempt_num + 1, max_attempts))
+                    else:
+                        # Final attempt after all retries
+                        self.update_monitoring_status()
                 
-                # Use QTimer to run status update in GUI thread
-                QTimer.singleShot(500, update_status_with_retry)  # First check after 500ms
+                # Start retry checks after initial delay
+                QTimer.singleShot(500, lambda: check_status_attempt(1, 4))  # 4 attempts with 500ms delays
                 
                 QMessageBox.information(
                     self, 
