@@ -2,19 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
-from ..database import get_db
-from ..models import User, UserMFA, AuditLog, UserRole
-from ..schemas import (
+from app.database import get_db
+from app.models import User, UserMFA, AuditLog, UserRole
+from app.schemas import (
     UserCreate, LoginRequest, LoginResponse, MFAVerifyRequest,
     MFAEnrollResponse, MFAActivateRequest, RefreshRequest, TokenResponse, UserResponse
 )
-from ..auth import (
+from app.auth import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     create_mfa_ticket, verify_token, get_current_user, verify_refresh_token,
     revoke_refresh_token
 )
-from ..totp import generate_totp_secret, get_totp_uri, generate_qr_code, verify_totp, generate_recovery_codes
-from ..config import settings
+from app.totp import generate_totp_secret, get_totp_uri, generate_qr_code, verify_totp, generate_recovery_codes
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 

@@ -17,11 +17,52 @@ def generate_dummy_alerts():
         db.query(Alert).delete()
         print("✅ Cleared existing alerts")
         
-        # Sample attack types
-        attack_types = [
-            "DDoS", "Port Scan", "SQL Injection", "XSS", "Brute Force",
-            "Malware", "Botnet", "Phishing", "Ransomware", "Data Exfiltration"
-        ]
+        # Also populate correct model metrics
+        from app.models import Model
+        from datetime import datetime
+        import uuid
+        
+        print("🔄 Updating model metrics...")
+        db.query(Model).delete()
+        
+        correct_metrics = {
+            "iteration": 4,
+            "model_name": "Random Forest Voting Ensemble",
+            "accuracy": 0.9048,
+            "precision": 0.9062,
+            "recall": 0.9048,
+            "f1": 0.9051,
+            "auc": 0.95,
+            "holdout_accuracy": 0.8974,
+            "holdout_precision": 0.8984,
+            "holdout_recall": 0.8974,
+            "holdout_f1": 0.8976,
+            "performance_consistency": 0.0076,
+            "training_time_minutes": 15,
+            "n_estimators": 200,
+            "max_depth": 20,
+            "features_used": 30,
+            "data_samples": 50000,
+            "description": "Random Forest Voting Ensemble - 90.48% Accuracy, 90.51% F1-Score",
+            "model_type": "Voting Ensemble",
+            "algorithm": "Random Forest + Voting"
+        }
+        
+        # Training date: October 15, 2025
+        training_date = datetime(2025, 10, 15, 12, 0, 0)
+        
+        new_model = Model(
+            id=uuid.uuid4(),
+            version="iteration4_voting_ensemble",
+            trained_at=training_date,
+            metrics=correct_metrics,
+            notes="Primary production model - Random Forest Voting Ensemble with 90.48% accuracy and 90.51% F1-score"
+        )
+        db.add(new_model)
+        print("✅ Added correct model metrics")
+        
+        # Only DDoS attacks
+        attack_types = ["DDoS"]
         
         # Sample IP addresses
         source_ips = [
@@ -36,7 +77,7 @@ def generate_dummy_alerts():
         
         # Generate alerts for the last 7 days
         alerts = []
-        base_time = datetime.utcnow()
+        base_time = datetime.now()  # Use datetime.now() instead of utcnow()
         
         for i in range(50):  # Generate 50 dummy alerts
             # Random time in last 7 days
@@ -62,8 +103,8 @@ def generate_dummy_alerts():
             # Create alert
             alert = Alert(
                 event_ts=event_time,
-                src_ip=ipaddress.ip_address(src_ip),
-                dst_ip=ipaddress.ip_address(dst_ip),
+                src_ip=src_ip,  # Store as string, not IPv4Address object
+                dst_ip=dst_ip,  # Store as string, not IPv4Address object
                 attack_type=attack_type,
                 score=score,
                 is_malicious=is_malicious,

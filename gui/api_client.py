@@ -7,11 +7,12 @@ import json
 
 
 class APIClient:
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8000", timeout_seconds: int = 10):
         self.base_url = base_url
         self.access_token: Optional[str] = None
         self.refresh_token: Optional[str] = None
         self.session = requests.Session()
+        self.timeout = timeout_seconds
     
     def _get_headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -36,7 +37,8 @@ class APIClient:
         """Login with email and password"""
         response = self.session.post(
             f"{self.base_url}/auth/login",
-            json={"email": email, "password": password}
+            json={"email": email, "password": password},
+            timeout=self.timeout
         )
         data = self._handle_response(response)
         
@@ -50,7 +52,8 @@ class APIClient:
         """Verify MFA code"""
         response = self.session.post(
             f"{self.base_url}/auth/mfa/verify",
-            json={"ticket": ticket, "otp_code": otp_code}
+            json={"ticket": ticket, "otp_code": otp_code},
+            timeout=self.timeout
         )
         data = self._handle_response(response)
         
@@ -63,7 +66,8 @@ class APIClient:
         """Get current user info"""
         response = self.session.get(
             f"{self.base_url}/auth/me",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -74,7 +78,8 @@ class APIClient:
                 self.session.post(
                     f"{self.base_url}/auth/logout",
                     json={"refresh_token": self.refresh_token},
-                    headers=self._get_headers()
+                    headers=self._get_headers(),
+                    timeout=self.timeout
                 )
             except:
                 pass
@@ -87,7 +92,8 @@ class APIClient:
         """Start MFA enrollment"""
         response = self.session.post(
             f"{self.base_url}/auth/mfa/enroll",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -96,7 +102,8 @@ class APIClient:
         response = self.session.post(
             f"{self.base_url}/auth/mfa/activate",
             json={"otp_code": otp_code},
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -105,7 +112,8 @@ class APIClient:
         """Get model metrics"""
         response = self.session.get(
             f"{self.base_url}/api/metrics",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -113,7 +121,8 @@ class APIClient:
         """Get dashboard KPIs"""
         response = self.session.get(
             f"{self.base_url}/api/kpis",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -123,7 +132,8 @@ class APIClient:
         response = self.session.get(
             f"{self.base_url}/api/alerts",
             params=params,
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -132,7 +142,8 @@ class APIClient:
         response = self.session.patch(
             f"{self.base_url}/api/alerts/{alert_id}/status",
             json={"status": status},
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -140,7 +151,8 @@ class APIClient:
         """Get current threshold"""
         response = self.session.get(
             f"{self.base_url}/api/threshold",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -149,7 +161,8 @@ class APIClient:
         response = self.session.put(
             f"{self.base_url}/api/threshold",
             json={"new_value": new_value},
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -157,7 +170,8 @@ class APIClient:
         """Get active block rules"""
         response = self.session.get(
             f"{self.base_url}/api/blocks/active",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -166,7 +180,8 @@ class APIClient:
         response = self.session.post(
             f"{self.base_url}/api/blocks",
             json={"src_ip": src_ip, "reason": reason},
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -174,7 +189,8 @@ class APIClient:
         """Deactivate block rule"""
         response = self.session.patch(
             f"{self.base_url}/api/blocks/{block_id}/deactivate",
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -185,7 +201,8 @@ class APIClient:
         response = self.session.get(
             f"{self.base_url}/users",
             params=params,
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -194,7 +211,8 @@ class APIClient:
         response = self.session.post(
             f"{self.base_url}/users",
             json={"email": email, "password": password, "role": role},
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
     
@@ -203,7 +221,8 @@ class APIClient:
         response = self.session.patch(
             f"{self.base_url}/users/{user_id}",
             json=updates,
-            headers=self._get_headers()
+            headers=self._get_headers(),
+            timeout=self.timeout
         )
         return self._handle_response(response)
 

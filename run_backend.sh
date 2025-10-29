@@ -25,34 +25,40 @@ if [ ! -f "$PROJECT_DIR/backend/app/main.py" ]; then
     exit 1
 fi
 
-# Check if virtual environment exists
-if [ ! -d "$PROJECT_DIR/venv" ]; then
-    echo -e "${YELLOW}⚠️ Virtual environment not found. Creating one...${NC}"
-    python3 -m venv "$PROJECT_DIR/venv"
+# Use backend-local virtual environment
+BACKEND_DIR="$PROJECT_DIR/backend"
+VENV_DIR="$BACKEND_DIR/.venv"
+PORT="${PORT:-3000}"
+
+# Create venv if missing
+if [ ! -d "$VENV_DIR" ]; then
+    echo -e "${YELLOW}⚠️ Virtual environment not found in backend. Creating one at $VENV_DIR...${NC}"
+    python3 -m venv "$VENV_DIR"
     echo -e "${GREEN}✅ Virtual environment created${NC}"
 fi
 
 # Activate virtual environment
 echo -e "${BLUE}🔌 Activating virtual environment...${NC}"
-source "$PROJECT_DIR/venv/bin/activate"
+source "$VENV_DIR/bin/activate"
 
-# Check if requirements are installed
+# Check and install dependencies
 echo -e "${BLUE}📦 Checking dependencies...${NC}"
-cd "$PROJECT_DIR/backend"
+cd "$BACKEND_DIR"
 
-if ! python -c "import fastapi" 2>/dev/null; then
-    echo -e "${YELLOW}⚠️ Dependencies not installed. Installing...${NC}"
+if ! python -c "import fastapi, uvicorn" 2>/dev/null; then
+    echo -e "${YELLOW}⚠️ Dependencies not found. Upgrading pip and installing...${NC}"
+    python -m pip install --upgrade pip setuptools wheel
     pip install -r requirements.txt
     echo -e "${GREEN}✅ Dependencies installed${NC}"
 fi
 
 # Start the backend server
 echo -e "${GREEN}🌟 Starting FastAPI backend server...${NC}"
-echo "Server will be available at: http://localhost:8000"
-echo "API documentation: http://localhost:8000/docs"
+echo "Server will be available at: http://localhost:$PORT"
+echo "API documentation: http://localhost:$PORT/docs"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
 echo "=================================="
 
-# Start uvicorn with proper configuration
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Start uvicorn with proper configuration (default port 3000, override with PORT env)
+uvicorn app.main:app --reload --host 0.0.0.0 --port "$PORT"

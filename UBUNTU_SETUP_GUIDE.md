@@ -1,254 +1,102 @@
-# Ubuntu VM Setup Guide
+# Ubuntu VM Setup Guide - Fix Git Repository Issue
 
-## 🐧 Quick Setup for Ubuntu Virtual Machine
+## 🚨 **Issue**: `fatal: not a git repository`
 
-This guide provides automated scripts to set up and run the IDS/IDPS system on Ubuntu, resolving the "externally-managed-environment" error.
+This error occurs when the directory is not a proper Git repository. Here's how to fix it:
 
----
+## 🔧 **Quick Fix**
 
-## 🚀 One-Command Setup
-
-### Option 1: Fresh Clone & Setup
+### Option 1: Use the Fix Script
 ```bash
-# Clone the repository
-git clone https://github.com/annKimani-ICS/Random-Forest-Based-IDPS.git
-cd Random-Forest-Based-IDPS
-
-# Run automated setup (handles everything!)
-chmod +x setup.sh
-./setup.sh
+# Download and run the fix script
+wget https://raw.githubusercontent.com/annKimani-ICS/Random-Forest-Based-IDPS/feat/sprint4-admin-dashboard/fix_git_repo.sh
+chmod +x fix_git_repo.sh
+./fix_git_repo.sh
 ```
 
-### Option 2: Update Existing Project
+### Option 2: Manual Fix
 ```bash
-# Navigate to your project
-cd ~/Random-Forest-Based-IDPS
+# Navigate to home directory
+cd ~
+
+# Remove existing directory if it exists
+rm -rf Random-Forest-Based-IDPS
+
+# Clone the repository properly
+git clone https://github.com/annKimani-ICS/Random-Forest-Based-IDPS.git
+
+# Navigate to the cloned directory
+cd Random-Forest-Based-IDPS
+
+# Checkout the correct branch
+git checkout feat/sprint4-admin-dashboard
 
 # Pull latest changes
-git fetch origin
 git pull origin feat/sprint4-admin-dashboard
 
-# Run setup (will update dependencies)
-chmod +x setup.sh
-./setup.sh
-```
-
----
-
-## 🎯 What the Scripts Do
-
-### `setup.sh` - Complete Setup
-- ✅ Creates virtual environment automatically
-- ✅ Installs all backend dependencies
-- ✅ Installs all GUI dependencies  
-- ✅ Tests imports to verify installation
-- ✅ Makes all scripts executable
-- ✅ Provides clear next steps
-
-### `run_backend.sh` - Backend Startup
-- ✅ Activates virtual environment automatically
-- ✅ Checks dependencies are installed
-- ✅ Starts FastAPI server on port 8000
-- ✅ Provides helpful status messages
-
-### `run_gui.sh` - GUI Startup
-- ✅ Activates virtual environment automatically
-- ✅ Checks GUI dependencies
-- ✅ Verifies backend is running
-- ✅ Starts PyQt5 desktop application
-
-### `run_full_system.sh` - Everything Together
-- ✅ Starts backend in background
-- ✅ Waits for backend to be ready
-- ✅ Starts GUI application
-- ✅ Handles cleanup on exit (Ctrl+C)
-
----
-
-## 📋 Step-by-Step Usage
-
-### 1. Initial Setup
-```bash
-# Download and setup
-git clone https://github.com/annKimani-ICS/Random-Forest-Based-IDPS.git
-cd Random-Forest-Based-IDPS
-chmod +x setup.sh
-./setup.sh
-```
-
-### 2. Start the System
-
-#### Option A: Start Everything Together
-```bash
-./run_full_system.sh
-```
-
-#### Option B: Start Separately (Recommended for Development)
-```bash
-# Terminal 1 - Backend
-./run_backend.sh
-
-# Terminal 2 - GUI (open new terminal)
-./run_gui.sh
-```
-
-### 3. Access the System
-- **GUI Application**: Desktop window will open
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-
----
-
-## 🔧 Troubleshooting
-
-### "externally-managed-environment" Error
-**Solution**: The automation scripts handle this automatically by using virtual environments.
-
-### Permission Denied
-```bash
 # Make scripts executable
-chmod +x *.sh
+chmod +x automated_fix_sprint4.sh
+chmod +x fix_git_repo.sh
+
+# Run the automated fix
+./automated_fix_sprint4.sh
 ```
 
-### Python Version Issues
+## 🎯 **What This Fixes**
+
+✅ **Clones repository properly** from GitHub  
+✅ **Checks out correct branch** (feat/sprint4-admin-dashboard)  
+✅ **Pulls latest changes** with all fixes  
+✅ **Makes scripts executable**  
+✅ **Runs automated setup**  
+
+## 🚀 **Expected Results**
+
+After running the fix:
+- ✅ Git repository properly initialized
+- ✅ All files and scripts available
+- ✅ Automated fix script runs successfully
+- ✅ Backend and GUI setup complete
+- ✅ Ready for live traffic testing
+
+## 🔍 **Verification**
+
+To verify everything is working:
 ```bash
-# Check Python version
-python3 --version
+# Check git status
+git status
 
-# Should be 3.8+ (recommended: 3.10+)
+# Check branch
+git branch --show-current
+
+# Check if scripts exist
+ls -la automated_fix_sprint4.sh
+ls -la fix_git_repo.sh
+
+# Check if scripts are executable
+ls -la | grep "automated_fix_sprint4.sh"
 ```
 
-### Port Already in Use
+## 🎉 **Next Steps**
+
+1. **Run the fix script** (Option 1 or 2 above)
+2. **Follow automated setup** prompts
+3. **Start backend**: `cd backend && ./start_backend.sh`
+4. **Start GUI**: `cd gui && ./start_gui.sh`
+5. **Begin live traffic testing**
+
+## 📞 **If Issues Persist**
+
+If you still have issues:
 ```bash
-# Check what's using port 8000
-lsof -i :8000
+# Check if you have git installed
+git --version
 
-# Kill process if needed
-sudo kill -9 <PID>
+# Check if you have internet connection
+ping github.com
+
+# Check if you have proper permissions
+ls -la ~
 ```
 
-### GUI Won't Start
-```bash
-# Check if backend is running
-curl http://localhost:8000/docs
-
-# If not running, start backend first
-./run_backend.sh
-```
-
----
-
-## 📱 Multi-Factor Authentication
-
-After logging in, you can enable MFA:
-
-1. **Click the 🔐 Security tab**
-2. **Click "Enable Two-Factor Authentication"**
-3. **Scan QR code** with Google Authenticator
-4. **Enter verification code**
-5. **Save recovery codes**
-
-📚 **Detailed guides:**
-- `QUICK_START_MFA.md` - Quick setup
-- `MFA_SETUP_GUIDE.md` - Complete guide
-
----
-
-## 🔄 Updating the System
-
-### Pull Latest Changes
-```bash
-cd ~/Random-Forest-Based-IDPS
-
-# Fetch and pull updates
-git fetch origin
-git pull origin feat/sprint4-admin-dashboard
-
-# Re-run setup if needed
-./setup.sh
-```
-
-### Update Dependencies Only
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Update backend dependencies
-cd backend
-pip install -r requirements.txt
-
-# Update GUI dependencies
-cd ../gui
-pip install -r requirements.txt
-```
-
----
-
-## 📊 System Requirements
-
-### Minimum Requirements
-- **OS**: Ubuntu 18.04+ (20.04+ recommended)
-- **RAM**: 2GB minimum (4GB recommended)
-- **Storage**: 2GB free space
-- **Python**: 3.8+ (3.10+ recommended)
-
-### Dependencies Installed
-- **Backend**: FastAPI, SQLAlchemy, pyotp, qrcode, etc.
-- **GUI**: PyQt5, matplotlib, requests, etc.
-- **Database**: PostgreSQL (if using external DB)
-
----
-
-## 🎯 Quick Commands Reference
-
-| Task | Command |
-|------|---------|
-| **Setup** | `./setup.sh` |
-| **Start Backend** | `./run_backend.sh` |
-| **Start GUI** | `./run_gui.sh` |
-| **Start Both** | `./run_full_system.sh` |
-| **Manual Activation** | `source venv/bin/activate` |
-| **Update Project** | `git pull origin feat/sprint4-admin-dashboard` |
-
----
-
-## 🎉 Success Indicators
-
-After successful setup, you should see:
-
-```
-🎉 Setup Complete!
-==================================
-
-🚀 Quick Start Commands:
-
-Start Backend:
-  ./run_backend.sh
-
-Start GUI (in new terminal):
-  ./run_gui.sh
-
-Manual activation:
-  source venv/bin/activate
-
-📚 Documentation:
-  README.md - Main project documentation
-  README_MFA.md - MFA setup guide
-  QUICK_START_MFA.md - Quick MFA guide
-
-Happy coding! 🎊
-```
-
----
-
-## 📞 Need Help?
-
-1. **Check logs** in the terminal output
-2. **Verify Python version**: `python3 --version`
-3. **Check dependencies**: `source venv/bin/activate && pip list`
-4. **Test imports**: `python -c "import fastapi, PyQt5"`
-5. **Review documentation**: `cat README.md`
-
----
-
-**Your IDS/IDPS system with MFA is now ready to run! 🚀**
+**The fix script will handle everything automatically!** 🚀

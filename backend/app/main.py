@@ -4,9 +4,9 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from .config import settings
-from .routers import auth, dashboard, users
-from .database import engine, Base
+from app.config import settings
+from app.routers import auth, dashboard, users
+from app.database import engine, Base
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

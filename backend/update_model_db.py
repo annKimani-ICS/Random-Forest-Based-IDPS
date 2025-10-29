@@ -39,17 +39,20 @@ def update_iteration4_model():
             Model.version == "iteration4_voting_ensemble"
         ).first()
         
+        # Training date: October 15, 2025
+        training_date = datetime(2025, 10, 15, 12, 0, 0)
+        
         if existing_model:
             print("✅ Updating existing Iteration 4 model...")
             existing_model.metrics = iteration4_metrics
-            existing_model.trained_at = datetime(2024, 10, 15, 12, 0, 0)
+            existing_model.trained_at = training_date
             existing_model.notes = "Best performing model - 90.48% accuracy, 90.51% F1-score"
         else:
             print("✅ Creating new Iteration 4 model entry...")
             new_model = Model(
                 id=uuid.uuid4(),
                 version="iteration4_voting_ensemble",
-                trained_at=datetime(2024, 10, 15, 12, 0, 0),
+                trained_at=training_date,
                 metrics=iteration4_metrics,
                 notes="Best performing model - 90.48% accuracy, 90.51% F1-score"
             )
