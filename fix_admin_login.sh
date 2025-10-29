@@ -225,3 +225,4 @@ echo "   - Delete credentials file after noting password"
 
 echo ""
 echo -e "${GREEN}🎯 Admin login should now work!${NC}"
+

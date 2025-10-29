@@ -167,3 +167,4 @@ echo "   - .env file created if missing"
 echo "   - API accessible at http://localhost:8000"
 echo ""
 echo -e "${GREEN}🎯 Backend script is now ready!${NC}"
+

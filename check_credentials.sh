@@ -82,3 +82,4 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 else
     echo -e "${BLUE}You can run it later with: ./fix_login_credentials.sh${NC}"
 fi
+

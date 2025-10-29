@@ -308,3 +308,4 @@ echo "   - Follow security checklist before commits"
 
 echo ""
 echo -e "${GREEN}🎯 Repository is now GitGuardian compliant!${NC}"
+

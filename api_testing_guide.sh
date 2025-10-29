@@ -175,3 +175,4 @@ echo "Open http://localhost:8000/docs in browser"
 
 echo ""
 echo -e "${GREEN}🎯 Ready to test!${NC}"
+
