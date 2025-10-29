@@ -45,7 +45,54 @@ else
 fi
 
 echo -e "${BLUE}📋 Step 2: Creating users...${NC}"
-if python3 create_users.py; then
+if python3 <<'ENDPYTHON'
+import sys
+sys.path.insert(0, '.')
+from app.database import SessionLocal, engine, Base
+from app.models import User, UserRole
+from app.auth import hash_password
+
+db = SessionLocal()
+try:
+    # Ensure tables exist
+    Base.metadata.create_all(bind=engine)
+    
+    # Create Admin user
+    u = db.query(User).filter(User.email == "admin@ids-idps.com").first()
+    if not u:
+        u = User(email="admin@ids-idps.com", password_hash=hash_password("AdminSecure2024!"), role=UserRole.ADMIN, is_active=True)
+        db.add(u)
+        print("✅ Created admin@ids-idps.com")
+    else:
+        u.password_hash = hash_password("AdminSecure2024!")
+        u.role = UserRole.ADMIN
+        u.is_active = True
+        print("✅ Updated admin@ids-idps.com")
+    db.commit()
+    
+    # Create Analyst user
+    u = db.query(User).filter(User.email == "analyst@ids-idps.com").first()
+    if not u:
+        u = User(email="analyst@ids-idps.com", password_hash=hash_password("AnalystSecure2024!"), role=UserRole.ANALYST, is_active=True)
+        db.add(u)
+        print("✅ Created analyst@ids-idps.com")
+    else:
+        u.password_hash = hash_password("AnalystSecure2024!")
+        u.role = UserRole.ANALYST
+        u.is_active = True
+        print("✅ Updated analyst@ids-idps.com")
+    db.commit()
+    
+    print("✅ All users created successfully")
+    sys.exit(0)
+except Exception as e:
+    print(f"❌ Error: {e}")
+    db.rollback()
+    sys.exit(1)
+finally:
+    db.close()
+ENDPYTHON
+; then
     echo -e "${GREEN}✅ Users created successfully${NC}"
 else
     echo -e "${RED}❌ Failed to create users${NC}"
