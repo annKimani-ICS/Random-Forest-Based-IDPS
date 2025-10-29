@@ -212,6 +212,7 @@ class TrafficMonitor:
             
             if stats['start_time'] is None:
                 stats['start_time'] = datetime.now()
+                print(f"[MONITOR] New flow detected: {src_ip} → {dst_ip}")
             stats['end_time'] = datetime.now()
             stats['last_packet_time'] = datetime.now()
             
@@ -219,6 +220,12 @@ class TrafficMonitor:
             packet_len = len(packet)
             stats['packets'] += 1
             stats['bytes'] += packet_len
+            
+            # Log every 100 packets for visibility
+            if stats['packets'] % 100 == 0:
+                elapsed = (datetime.now() - stats['start_time']).total_seconds()
+                pps = stats['packets'] / elapsed if elapsed > 0 else 0
+                print(f"[MONITOR] Flow {src_ip} → {dst_ip}: {stats['packets']} packets, {pps:.1f} pps")
             
             # Direction (simplified - assumes monitoring interface perspective)
             # In production, you'd determine this more accurately
@@ -252,6 +259,7 @@ class TrafficMonitor:
                 
                 if elapsed >= self.window_size:
                     # Extract features and predict
+                    print(f"[MONITOR] Analyzing flow {src_ip} → {dst_ip} after {elapsed:.1f}s ({stats['packets']} packets)")
                     self._analyze_flow(flow_key, src_ip, dst_ip, stats, elapsed)
                     
                     # Reset stats for next window
@@ -274,8 +282,8 @@ class TrafficMonitor:
                     self.packet_stats[flow_key] = stats
         
         except Exception as e:
-            # Silently ignore packet processing errors to avoid spam
-            pass
+            # Log errors but don't spam
+            print(f"[MONITOR] Error processing packet: {e}")
     
     def _analyze_flow(self, flow_key: str, src_ip: str, dst_ip: str, stats: Dict, window_seconds: float):
         """Analyze a flow and create alert if malicious"""
@@ -318,16 +326,18 @@ class TrafficMonitor:
         
         except Exception as e:
             print(f"⚠️  Error analyzing flow: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _create_alert(self, src_ip: str, dst_ip: str, score: float, stats: Dict):
         """Create alert in database"""
         db: Session = SessionLocal()
         try:
-            # Check for recent duplicate alert (within last minute)
+            # Check for recent duplicate alert (within last 30 seconds to allow more frequent updates)
             recent = db.query(Alert).filter(
                 Alert.src_ip == src_ip,
                 Alert.dst_ip == dst_ip,
-                Alert.event_ts >= datetime.utcnow() - timedelta(minutes=1)
+                Alert.event_ts >= datetime.utcnow() - timedelta(seconds=30)
             ).first()
             
             if recent:
@@ -337,6 +347,9 @@ class TrafficMonitor:
                     recent.is_malicious = score >= self.threshold
                     recent.event_ts = datetime.utcnow()
                     db.commit()
+                    print(f"📊 Updated alert for {src_ip} → {dst_ip} (score: {score:.3f})")
+                else:
+                    print(f"⏭️  Skipping duplicate alert for {src_ip} → {dst_ip} (score: {score:.3f} <= {recent.score:.3f})")
                 return
             
             # Create new alert

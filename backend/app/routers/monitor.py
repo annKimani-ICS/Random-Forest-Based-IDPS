@@ -2,33 +2,42 @@
 API endpoints for traffic monitoring control
 """
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from typing import Optional
+
 from app.database import get_db
 from app.models import User
 from app.auth import get_current_user, require_role, UserRole
 from app.traffic_monitor import TrafficMonitor
-from typing import Optional
 
 router = APIRouter(prefix="/api/monitor", tags=["monitor"])
 
 # Global monitor instance
 _monitor_instance: Optional[TrafficMonitor] = None
 
+
+class StartMonitoringRequest(BaseModel):
+    interface: Optional[str] = None
+    threshold: float = 0.50
+
 @router.post("/start")
 async def start_monitoring(
-    interface: Optional[str] = None,
-    threshold: float = 0.50,
+    request: StartMonitoringRequest,
     current_user: User = Depends(require_role([UserRole.ADMIN])),
     db: Session = Depends(get_db)
 ):
     """
     Start traffic monitoring (ADMIN only)
     
-    Args:
+    Request body:
         interface: Network interface name (e.g., eth0, enp0s3). Auto-detected if None.
         threshold: Detection threshold (0.0-1.0). Default 0.50.
     """
     global _monitor_instance
+    
+    interface = request.interface
+    threshold = request.threshold
     
     if _monitor_instance and _monitor_instance.is_monitoring:
         raise HTTPException(
