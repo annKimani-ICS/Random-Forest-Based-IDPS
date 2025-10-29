@@ -78,7 +78,8 @@ class TrafficMonitor:
         })
         
         # Window for aggregating packets (seconds)
-        self.window_size = 5.0
+        # Reduced to 2s to surface alerts faster during testing
+        self.window_size = 2.0
         
         # Monitoring state
         self.is_monitoring = False
@@ -91,10 +92,16 @@ class TrafficMonitor:
         """Auto-detect network interface"""
         if not SCAPY_AVAILABLE:
             return "eth0"  # Default
-        
+        try:
+            # Prefer interface with default route
+            from scapy.all import conf
+            gw_iface = conf.route.route("0.0.0.0")[0]
+        except Exception:
+            gw_iface = None
         interfaces = get_if_list()
-        # Prefer eth0, enp0s3, or first available
-        for iface in ["eth0", "enp0s3", "ens33", "wlan0"]:
+        # Prefer default route iface, then common names
+        preferred = [gw_iface, "enp0s3", "eth0", "ens33", "wlan0"]
+        for iface in [i for i in preferred if i]:
             if iface in interfaces:
                 return iface
         return interfaces[0] if interfaces else "eth0"
@@ -280,6 +287,24 @@ class TrafficMonitor:
                         'last_packet_time': current_time
                     }
                     self.packet_stats[flow_key] = stats
+                else:
+                    # Heuristic fast-path: if we see intense burst, analyze early
+                    if stats['packets'] >= 300 and elapsed >= 0.8:
+                        print(f"[MONITOR] Early analyze (burst) {src_ip} → {dst_ip} after {elapsed:.1f}s ({stats['packets']} packets)")
+                        self._analyze_flow(flow_key, src_ip, dst_ip, stats, max(elapsed, 1.0))
+                        # reset to avoid spamming
+                        stats['packets'] = 0
+                        stats['bytes'] = 0
+                        stats['tcp_count'] = 0
+                        stats['udp_count'] = 0
+                        stats['icmp_count'] = 0
+                        stats['packets_in'] = 0
+                        stats['packets_out'] = 0
+                        stats['bytes_in'] = 0
+                        stats['bytes_out'] = 0
+                        stats['src_ports'].clear()
+                        stats['dst_ports'].clear()
+                        stats['start_time'] = current_time
         
         except Exception as e:
             # Log errors but don't spam
@@ -411,6 +436,7 @@ class TrafficMonitor:
                 iface=self.interface,
                 prn=self._process_packet,
                 store=False,
+                filter="ip",
                 stop_filter=lambda x: not self.is_monitoring
             )
             print(f"[BACKEND] sniff() completed")
