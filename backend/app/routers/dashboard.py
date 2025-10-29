@@ -4,14 +4,14 @@ from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 from typing import Optional, List
 from uuid import UUID
-from ..database import get_db
-from ..models import User, Alert, Model, Threshold, BlockRule, AuditLog, UserRole, AlertStatus
-from ..schemas import (
+from app.database import get_db
+from app.models import User, Alert, Model, Threshold, BlockRule, AuditLog, UserRole, AlertStatus
+from app.schemas import (
     KPIResponse, MetricsResponse, AlertResponse, AlertListResponse,
     ThresholdResponse, ThresholdUpdate, BlockRuleCreate, BlockRuleResponse,
     AlertUpdateStatus, AuditLogResponse
 )
-from ..auth import get_current_user, require_role
+from app.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
 
