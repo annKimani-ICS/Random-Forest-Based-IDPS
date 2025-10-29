@@ -1,69 +1,89 @@
 #!/bin/bash
-# GUI startup script with automatic virtual environment activation
-# Usage: ./run_gui.sh
+# Fix GUI Dependencies and Run GUI
 
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${BLUE}🖥️ Starting IDS/IDPS Desktop GUI${NC}"
-echo "=================================="
+echo -e "${BLUE}🔧 Fixing GUI Dependencies${NC}"
+echo "=============================================="
 
-# Get script directory
+# Get script directory (project root)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$SCRIPT_DIR"
+cd "$SCRIPT_DIR"
 
-# Check if we're in the right directory
-if [ ! -f "$PROJECT_DIR/gui/main.py" ]; then
-    echo -e "${RED}❌ Error: gui/main.py not found${NC}"
-    echo "Please run this script from the project root directory"
+# Check if we're in the right place
+if [ ! -d "gui" ]; then
+    echo -e "${RED}❌ GUI directory not found${NC}"
     exit 1
 fi
 
-# Check if virtual environment exists
-if [ ! -d "$PROJECT_DIR/venv" ]; then
-    echo -e "${YELLOW}⚠️ Virtual environment not found. Creating one...${NC}"
-    python3 -m venv "$PROJECT_DIR/venv"
-    echo -e "${GREEN}✅ Virtual environment created${NC}"
+# Activate virtual environment
+if [ -d "venv" ]; then
+    echo -e "${BLUE}📦 Activating virtual environment...${NC}"
+    source venv/bin/activate
+elif [ -d ".venv" ]; then
+    echo -e "${BLUE}📦 Activating virtual environment...${NC}"
+    source .venv/bin/activate
+else
+    echo -e "${RED}❌ Virtual environment not found${NC}"
+    echo -e "${YELLOW}Creating virtual environment...${NC}"
+    python3 -m venv venv
+    source venv/bin/activate
 fi
 
-# Activate virtual environment
-echo -e "${BLUE}🔌 Activating virtual environment...${NC}"
-source "$PROJECT_DIR/venv/bin/activate"
+# Install GUI dependencies
+echo -e "${BLUE}📦 Installing GUI dependencies...${NC}"
+pip install --upgrade pip setuptools wheel
+pip install PyQt5 requests python-dotenv
 
-# Check if requirements are installed
-echo -e "${BLUE}📦 Checking GUI dependencies...${NC}"
-cd "$PROJECT_DIR/gui"
+echo -e "${GREEN}✅ Dependencies installed${NC}"
 
-if ! python -c "import PyQt5" 2>/dev/null; then
-    echo -e "${YELLOW}⚠️ GUI dependencies not installed. Installing...${NC}"
-    pip install -r requirements.txt
-    echo -e "${GREEN}✅ GUI dependencies installed${NC}"
+# Check GUI files
+echo -e "${BLUE}📋 Checking GUI files...${NC}"
+if [ ! -f "gui/main.py" ]; then
+    echo -e "${RED}❌ gui/main.py not found${NC}"
+    exit 1
+fi
+
+if [ ! -f "gui/login_window.py" ]; then
+    echo -e "${RED}❌ gui/login_window.py not found${NC}"
+    exit 1
+fi
+
+if [ ! -f "gui/api_client.py" ]; then
+    echo -e "${RED}❌ gui/api_client.py not found${NC}"
+    exit 1
 fi
 
 # Check if backend is running
-echo -e "${BLUE}🔍 Checking backend connection...${NC}"
-if ! curl -s http://localhost:8000/docs > /dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️ Backend server not detected at http://localhost:8000${NC}"
-    echo -e "${YELLOW}Please start the backend first: ./run_backend.sh${NC}"
+echo -e "${BLUE}📋 Checking if backend is running...${NC}"
+if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Backend is running on http://localhost:8000${NC}"
+else
+    echo -e "${YELLOW}⚠️  Backend is not running. Please start it first:${NC}"
+    echo "  cd backend && source .venv/bin/activate"
+    echo "  export PYTHONPATH=\$(pwd)"
+    echo "  python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${RED}❌ Exiting. Start backend first with: ./run_backend.sh${NC}"
+    echo -e "${YELLOW}Do you want to continue anyway? (y/n)${NC}"
+    read -r response
+    if [ "$response" != "y" ]; then
         exit 1
     fi
-else
-    echo -e "${GREEN}✅ Backend server detected${NC}"
 fi
 
-# Start the GUI
-echo -e "${GREEN}🌟 Starting PyQt5 GUI application...${NC}"
-echo "=================================="
+echo ""
+echo -e "${GREEN}🎉 GUI Dependencies Fixed!${NC}"
+echo "=============================================="
+echo -e "${BLUE}🚀 Starting GUI...${NC}"
+echo ""
 
-python main.py
+# Set PYTHONPATH and run GUI
+export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/gui"
+cd gui
+python3 main.py
