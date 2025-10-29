@@ -149,6 +149,7 @@ class DashboardWindow(QMainWindow):
         self.load_data()
         
         # Update monitoring status on startup (if admin)
+        # Buttons will be initialized after setup_ui creates them
         if self.is_admin:
             QTimer.singleShot(1000, self.update_monitoring_status)  # Delay 1 second for UI to render
     
@@ -368,6 +369,7 @@ class DashboardWindow(QMainWindow):
             
             self.start_monitoring_btn = QPushButton("▶ Start Monitoring")
             self.start_monitoring_btn.clicked.connect(self.start_monitoring)
+            self.start_monitoring_btn.setEnabled(True)  # Enabled by default
             self.start_monitoring_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #10b981;
@@ -389,6 +391,7 @@ class DashboardWindow(QMainWindow):
             
             self.stop_monitoring_btn = QPushButton("⏹ Stop Monitoring")
             self.stop_monitoring_btn.clicked.connect(self.stop_monitoring)
+            self.stop_monitoring_btn.setEnabled(False)  # Disabled by default
             self.stop_monitoring_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #ef4444;
@@ -1222,20 +1225,27 @@ class DashboardWindow(QMainWindow):
             # More graceful error handling
             error_msg = str(e)
             if "401" in error_msg or "Unauthorized" in error_msg:
-                self.monitoring_status_label.setText("Status: ⚠️ Auth Required")
+                self.monitoring_status_label.setText("Status: ⚠️ Auth Required - Try Refreshing")
                 self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
             elif "Connection" in error_msg or "timeout" in error_msg.lower():
                 self.monitoring_status_label.setText("Status: ⚠️ Backend Unavailable")
                 self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
             else:
-                self.monitoring_status_label.setText("Status: ⏸ Check Backend")
-                self.monitoring_status_label.setStyleSheet("color: #64748b; font-weight: bold;")
+                self.monitoring_status_label.setText("Status: ⚠️ Cannot Check Status")
+                self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
             
-            # Disable buttons on error
+            # On error, allow user to try starting (may work even if status fails)
+            # But disable stop since we don't know if monitoring is running
             if hasattr(self, 'start_monitoring_btn'):
-                self.start_monitoring_btn.setEnabled(False)
+                self.start_monitoring_btn.setEnabled(True)  # Allow attempting to start
             if hasattr(self, 'stop_monitoring_btn'):
-                self.stop_monitoring_btn.setEnabled(False)
+                self.stop_monitoring_btn.setEnabled(False)  # Disable stop if status unknown
+            
+            # Clear interface/threshold on error
+            if hasattr(self, 'monitoring_interface_label'):
+                self.monitoring_interface_label.setText("Interface: Unknown")
+            if hasattr(self, 'monitoring_threshold_label'):
+                self.monitoring_threshold_label.setText("Threshold: Unknown")
             
             print(f"Error updating monitoring status: {e}")
     
