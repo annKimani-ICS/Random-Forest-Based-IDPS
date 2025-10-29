@@ -100,7 +100,7 @@ class TrafficMonitor:
             gw_iface = None
         interfaces = get_if_list()
         # Prefer default route iface, then common names
-        preferred = [gw_iface, "enp0s3", "eth0", "ens33", "wlan0"]
+        preferred = [gw_iface, "any", "enp0s3", "eth0", "ens33", "wlan0"]
         for iface in [i for i in preferred if i]:
             if iface in interfaces:
                 return iface

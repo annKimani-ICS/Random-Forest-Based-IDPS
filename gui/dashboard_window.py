@@ -1262,18 +1262,20 @@ class DashboardWindow(QMainWindow):
         # Get interface (default to eth0)
         import subprocess
         try:
+            # Prefer capturing on all interfaces to avoid VM/NAT confusion
+            default_iface = "any"
+            # Fallback to detected default route interface if needed
             result = subprocess.run(['ip', 'route'], capture_output=True, text=True, timeout=2)
-            default_iface = "eth0"
             for line in result.stdout.split('\n'):
                 if 'default' in line and 'dev' in line:
                     parts = line.split()
                     if 'dev' in parts:
                         idx = parts.index('dev')
                         if idx + 1 < len(parts):
-                            default_iface = parts[idx + 1]
+                            default_iface = parts[idx + 1] or default_iface
                             break
         except:
-            default_iface = "eth0"
+            default_iface = "any"
         
         # Get threshold from current threshold card
         current_threshold = 0.50
