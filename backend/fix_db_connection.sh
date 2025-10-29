@@ -17,6 +17,16 @@ echo -e "${BLUE}🔧 Fixing PostgreSQL connection for backend...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Ensure Postgres is running
+if command -v sudo >/dev/null 2>&1; then SUDO=sudo; fi
+if $SUDO systemctl is-active --quiet postgresql; then
+  echo -e "${GREEN}✅ PostgreSQL service is running${NC}"
+else
+  echo -e "${YELLOW}▶️  Starting PostgreSQL service...${NC}"
+  $SUDO systemctl start postgresql || true
+  $SUDO systemctl enable postgresql || true
+fi
+
 # Ensure .env exists
 if [ ! -f .env ]; then
   echo -e "${YELLOW}⚠️  .env not found. Creating a default one...${NC}"
@@ -48,9 +58,6 @@ fix_to_postgres_superuser() {
 
 create_db_if_missing() {
   echo -e "${BLUE}🛠  Ensuring database exists...${NC}"
-  if command -v sudo >/dev/null 2>&1; then
-    SUDO=sudo
-  fi
   if $SUDO -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='ids_idps_db'" | grep -q 1; then
     echo -e "${GREEN}✅ Database ids_idps_db already exists${NC}"
   else
@@ -86,6 +93,21 @@ except Exception as e:
 PY
 }
 
+# Ensure local auth allows md5 (password) connections
+PG_HBA=$($SUDO bash -lc "find /etc/postgresql -name pg_hba.conf | head -n1" || true)
+if [ -n "$PG_HBA" ] && $SUDO test -f "$PG_HBA"; then
+  echo -e "${BLUE}🔐 Ensuring md5 auth in $PG_HBA...${NC}"
+  $SUDO sed -i 's/^local\s\+all\s\+all\s\+peer/local   all             all                                     md5/' "$PG_HBA" || true
+  # Add host rules for localhost if missing
+  if ! $SUDO grep -q "host *all *all *127.0.0.1/32 *md5" "$PG_HBA"; then
+    echo "host    all             all             127.0.0.1/32            md5" | $SUDO tee -a "$PG_HBA" >/dev/null
+  fi
+  if ! $SUDO grep -q "host *all *all *::1/128 *md5" "$PG_HBA"; then
+    echo "host    all             all             ::1/128                 md5" | $SUDO tee -a "$PG_HBA" >/dev/null
+  fi
+  $SUDO systemctl reload postgresql || true
+fi
+
 # Path A: Use postgres superuser for local dev (most reliable)
 fix_to_postgres_superuser
 create_db_if_missing
@@ -98,36 +120,16 @@ else
   echo -e "${YELLOW}⚠️  Connection with postgres user failed. Will create ids_user and configure password...${NC}"
 
   # Create ids_user with password and grant privileges
-  if command -v openssl >/dev/null 2>&1; then
-    IDS_PASS=$(openssl rand -base64 18 | tr -d '=+/')
-  else
-    IDS_PASS="IdsUser$(date +%s)Pwd!"
-  fi
+  # Generate SQL-safe password (alphanumeric only)
+  IDS_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)
 
-  if command -v sudo >/dev/null 2>&1; then
-    SUDO=sudo
-  fi
+  # Create role if missing with safely quoted password
+  $SUDO -u postgres psql -v ON_ERROR_STOP=1 -v pass="$IDS_PASS" -c "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='ids_user') THEN EXECUTE 'CREATE ROLE ids_user LOGIN PASSWORD ''' || :'pass' || ''''; END IF; END $$;" || true
 
-  $SUDO -u postgres psql -v ON_ERROR_STOP=1 <<SQL || true
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'ids_user') THEN
-    CREATE ROLE ids_user LOGIN PASSWORD '${IDS_PASS}';
-  END IF;
-END$$;
-SQL
-
-  $SUDO -u postgres psql -v ON_ERROR_STOP=1 <<SQL || true
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'ids_idps_db') THEN
-    CREATE DATABASE ids_idps_db OWNER ids_user;
-  ELSE
-    ALTER DATABASE ids_idps_db OWNER TO ids_user;
-  END IF;
-END$$;
-GRANT ALL PRIVILEGES ON DATABASE ids_idps_db TO ids_user;
-SQL
+  # Ensure database exists and is owned by ids_user
+  $SUDO -u postgres psql -v ON_ERROR_STOP=1 -c "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname='ids_idps_db') THEN CREATE DATABASE ids_idps_db OWNER ids_user; END IF; END $$;" || true
+  $SUDO -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER DATABASE ids_idps_db OWNER TO ids_user;" || true
+  $SUDO -u postgres psql -v ON_ERROR_STOP=1 -d ids_idps_db -c "GRANT ALL PRIVILEGES ON DATABASE ids_idps_db TO ids_user;" || true
 
   echo -e "${BLUE}🔁 Updating .env to use ids_user with password...${NC}"
   sed -i "s#^DATABASE_URL=.*#DATABASE_URL=postgresql+psycopg2://ids_user:${IDS_PASS}@localhost:5432/ids_idps_db#g" .env
