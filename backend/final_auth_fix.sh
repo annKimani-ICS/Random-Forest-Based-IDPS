@@ -76,8 +76,18 @@ $SUDO systemctl start postgresql
 sleep 3
 
 echo -e "${BLUE}📋 Step 4: Dropping and recreating user with new password...${NC}"
-# Drop user if exists
-$SUDO -u postgres psql -c "DROP USER IF EXISTS ids_user;" 2>/dev/null || true
+# Force drop user if exists (with CASCADE to drop dependent objects)
+$SUDO -u postgres psql -c "DROP USER IF EXISTS ids_user CASCADE;" 2>/dev/null || true
+
+# Wait a moment for the drop to complete
+sleep 1
+
+# Verify user was dropped
+if $SUDO -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='ids_user';" | grep -q 1; then
+    echo -e "${YELLOW}⚠️  User still exists, forcing drop...${NC}"
+    $SUDO -u postgres psql -c "DROP USER ids_user CASCADE;" 2>/dev/null || true
+    sleep 1
+fi
 
 # Generate a completely new password
 NEW_PASS="NewPass$(date +%s | tail -c 6)"
