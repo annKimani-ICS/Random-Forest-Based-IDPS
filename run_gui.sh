@@ -1,7 +1,8 @@
 #!/bin/bash
 # Fix GUI Dependencies and Run GUI
 
-set -e
+# Don't exit on error - we'll handle errors explicitly
+set +e
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,17 +24,28 @@ if [ ! -d "gui" ]; then
 fi
 
 # Activate virtual environment
-if [ -d "venv" ]; then
+if [ -n "$VIRTUAL_ENV" ]; then
+    echo -e "${GREEN}✅ Virtual environment already active: $VIRTUAL_ENV${NC}"
+elif [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
     echo -e "${BLUE}📦 Activating virtual environment...${NC}"
     source venv/bin/activate
-elif [ -d ".venv" ]; then
+elif [ -d ".venv" ] && [ -f ".venv/bin/activate" ]; then
     echo -e "${BLUE}📦 Activating virtual environment...${NC}"
     source .venv/bin/activate
+elif [ -d "backend/.venv" ] && [ -f "backend/.venv/bin/activate" ]; then
+    echo -e "${BLUE}📦 Activating backend virtual environment...${NC}"
+    source backend/.venv/bin/activate
 else
-    echo -e "${RED}❌ Virtual environment not found${NC}"
-    echo -e "${YELLOW}Creating virtual environment...${NC}"
-    python3 -m venv venv
-    source venv/bin/activate
+    echo -e "${YELLOW}⚠️  Virtual environment not found. Creating one...${NC}"
+    python3 -m venv venv || python3 -m venv .venv
+    if [ -f "venv/bin/activate" ]; then
+        source venv/bin/activate
+    elif [ -f ".venv/bin/activate" ]; then
+        source .venv/bin/activate
+    else
+        echo -e "${RED}❌ Failed to create virtual environment${NC}"
+        exit 1
+    fi
 fi
 
 # Install GUI dependencies
