@@ -225,4 +225,33 @@ class APIClient:
             timeout=self.timeout
         )
         return self._handle_response(response)
+    
+    # Monitoring APIs
+    def start_monitoring(self, interface: str = "eth0", threshold: float = 0.50) -> Dict[str, Any]:
+        """Start traffic monitoring"""
+        response = self.session.post(
+            f"{self.base_url}/api/monitor/start",
+            json={"interface": interface, "threshold": threshold},
+            headers=self._get_headers(),
+            timeout=self.timeout
+        )
+        return self._handle_response(response)
+    
+    def stop_monitoring(self) -> Dict[str, Any]:
+        """Stop traffic monitoring"""
+        response = self.session.post(
+            f"{self.base_url}/api/monitor/stop",
+            headers=self._get_headers(),
+            timeout=self.timeout
+        )
+        return self._handle_response(response)
+    
+    def get_monitoring_status(self) -> Dict[str, Any]:
+        """Get monitoring status"""
+        response = self.session.get(
+            f"{self.base_url}/api/monitor/status",
+            headers=self._get_headers(),
+            timeout=self.timeout
+        )
+        return self._handle_response(response)
 

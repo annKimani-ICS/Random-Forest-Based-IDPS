@@ -146,6 +146,10 @@ class DashboardWindow(QMainWindow):
         
         self.setup_ui()
         self.load_data()
+        
+        # Update monitoring status on startup (if admin)
+        if self.is_admin:
+            QTimer.singleShot(1000, self.update_monitoring_status)  # Delay 1 second for UI to render
     
     def setup_ui(self):
         """Setup main UI"""
@@ -298,6 +302,130 @@ class DashboardWindow(QMainWindow):
         layout.addLayout(kpi_layout)
         
         layout.addSpacing(20)
+        
+        # Traffic Monitoring Control (Admin only)
+        if self.is_admin:
+            monitoring_group = QGroupBox("🔍 Traffic Monitoring")
+            monitoring_group.setStyleSheet("""
+                QGroupBox {
+                    font-weight: bold;
+                    border: 2px solid #2563eb;
+                    border-radius: 8px;
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    background-color: white;
+                }
+                QGroupBox::title {
+                    subcontrol-origin: margin;
+                    left: 10px;
+                    padding: 0 5px;
+                    color: #2563eb;
+                }
+            """)
+            
+            monitoring_layout = QVBoxLayout()
+            
+            # Status display
+            status_layout = QHBoxLayout()
+            self.monitoring_status_label = QLabel("Status: Checking...")
+            self.monitoring_status_label.setFont(QFont("Arial", 12, QFont.Bold))
+            self.monitoring_status_label.setStyleSheet("color: #64748b;")
+            status_layout.addWidget(self.monitoring_status_label)
+            
+            status_layout.addStretch()
+            
+            # Info labels
+            self.monitoring_interface_label = QLabel()
+            self.monitoring_interface_label.setFont(QFont("Arial", 10))
+            self.monitoring_interface_label.setStyleSheet("color: #64748b;")
+            status_layout.addWidget(self.monitoring_interface_label)
+            
+            self.monitoring_threshold_label = QLabel()
+            self.monitoring_threshold_label.setFont(QFont("Arial", 10))
+            self.monitoring_threshold_label.setStyleSheet("color: #64748b;")
+            status_layout.addWidget(self.monitoring_threshold_label)
+            
+            monitoring_layout.addLayout(status_layout)
+            monitoring_layout.addSpacing(15)
+            
+            # Control buttons
+            button_layout = QHBoxLayout()
+            
+            self.start_monitoring_btn = QPushButton("▶ Start Monitoring")
+            self.start_monitoring_btn.clicked.connect(self.start_monitoring)
+            self.start_monitoring_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #10b981;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #059669;
+                }
+                QPushButton:disabled {
+                    background-color: #94a3b8;
+                }
+            """)
+            button_layout.addWidget(self.start_monitoring_btn)
+            
+            self.stop_monitoring_btn = QPushButton("⏹ Stop Monitoring")
+            self.stop_monitoring_btn.clicked.connect(self.stop_monitoring)
+            self.stop_monitoring_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #dc2626;
+                }
+                QPushButton:disabled {
+                    background-color: #94a3b8;
+                }
+            """)
+            button_layout.addWidget(self.stop_monitoring_btn)
+            
+            refresh_status_btn = QPushButton("🔄 Refresh Status")
+            refresh_status_btn.clicked.connect(self.update_monitoring_status)
+            refresh_status_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #2563eb;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #1e40af;
+                }
+            """)
+            button_layout.addWidget(refresh_status_btn)
+            
+            monitoring_layout.addLayout(button_layout)
+            
+            # Info text
+            info_label = QLabel(
+                "💡 When monitoring is active, the system will detect DDoS attacks in real-time. "
+                "Start monitoring, then launch attacks from your Kali VM to test."
+            )
+            info_label.setWordWrap(True)
+            info_label.setStyleSheet("color: #64748b; padding: 10px; background-color: #f1f5f9; border-radius: 5px;")
+            monitoring_layout.addWidget(info_label)
+            
+            monitoring_group.setLayout(monitoring_layout)
+            layout.addWidget(monitoring_group)
+            
+            layout.addSpacing(20)
         
         # Model Metrics Section
         metrics_group = QGroupBox("Model Performance (Random Forest)")
