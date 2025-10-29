@@ -139,8 +139,12 @@ def create_users(python):
     else:
         analyst_pass = analyst_pass_env
     
-    code = f"""
-import sys
+    # Use repr() to properly escape passwords for safe insertion
+    admin_pass_escaped = repr(admin_pass)
+    analyst_pass_escaped = repr(analyst_pass)
+    
+    # Create Python code with properly escaped passwords
+    code = f"""import sys
 import os
 sys.path.insert(0, '.')
 from app.database import SessionLocal, engine, Base
@@ -149,14 +153,11 @@ from app.auth import hash_password
 
 db = SessionLocal()
 try:
-    # Ensure tables exist
     Base.metadata.create_all(bind=engine)
     
-    # Get passwords from environment
-    admin_pass = os.getenv("ADMIN_PASSWORD", "{admin_pass}")
-    analyst_pass = os.getenv("ANALYST_PASSWORD", "{analyst_pass}")
+    admin_pass = os.getenv("ADMIN_PASSWORD", {admin_pass_escaped})
+    analyst_pass = os.getenv("ANALYST_PASSWORD", {analyst_pass_escaped})
     
-    # Create Admin user
     u = db.query(User).filter(User.email == "admin@ids-idps.com").first()
     if not u:
         u = User(email="admin@ids-idps.com", password_hash=hash_password(admin_pass), role=UserRole.ADMIN, is_active=True)
@@ -169,7 +170,6 @@ try:
         print("✅ Updated admin@ids-idps.com")
     db.commit()
     
-    # Create Analyst user
     u = db.query(User).filter(User.email == "analyst@ids-idps.com").first()
     if not u:
         u = User(email="analyst@ids-idps.com", password_hash=hash_password(analyst_pass), role=UserRole.ANALYST, is_active=True)
@@ -192,7 +192,22 @@ except Exception as e:
 finally:
     db.close()
 """
-    stdout, stderr, returncode = run_command(f"{python} -c \"{code}\"")
+    
+    # Write to temporary file to avoid shell escaping issues
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(code)
+        temp_file = f.name
+    
+    try:
+        # Execute the temporary file
+        stdout, stderr, returncode = run_command(f"{python} {temp_file}")
+    finally:
+        # Clean up temp file
+        try:
+            os.unlink(temp_file)
+        except:
+            pass
     if returncode != 0:
         print(f"❌ Failed to create users: {stderr}")
         return False
