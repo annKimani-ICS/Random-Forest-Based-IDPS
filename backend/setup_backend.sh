@@ -25,13 +25,41 @@ else
     exit 1
 fi
 
-echo -e "${BLUE}📋 Step 1: Creating users...${NC}"
-python3 create_users.py
+echo -e "${BLUE}📋 Step 1: Testing database connection...${NC}"
+if python3 -c "
+from app.database import SessionLocal
+from sqlalchemy import text
+try:
+    db = SessionLocal()
+    db.execute(text('SELECT 1'))
+    db.close()
+    print('✅ Database connection successful')
+except Exception as e:
+    print(f'❌ Database connection failed: {e}')
+    exit(1)
+" 2>/dev/null; then
+    echo -e "${GREEN}✅ Database connection verified${NC}"
+else
+    echo -e "${RED}❌ Database connection failed. Please run simple_postgres_fix.sh first${NC}"
+    exit 1
+fi
 
-echo -e "${BLUE}📋 Step 2: Checking if seed_data exists...${NC}"
+echo -e "${BLUE}📋 Step 2: Creating users...${NC}"
+if python3 create_users.py; then
+    echo -e "${GREEN}✅ Users created successfully${NC}"
+else
+    echo -e "${RED}❌ Failed to create users${NC}"
+    exit 1
+fi
+
+echo -e "${BLUE}📋 Step 3: Checking if seed_data exists...${NC}"
 if [ -f "seed_data.py" ]; then
-    echo -e "${BLUE}📋 Step 3: Running seed_data.py...${NC}"
-    python3 seed_data.py
+    echo -e "${BLUE}📋 Step 4: Running seed_data.py...${NC}"
+    if python3 seed_data.py; then
+        echo -e "${GREEN}✅ Data seeded successfully${NC}"
+    else
+        echo -e "${YELLOW}⚠️  seed_data.py failed, but continuing...${NC}"
+    fi
 else
     echo -e "${YELLOW}⚠️  seed_data.py not found. Skipping data seeding${NC}"
 fi
