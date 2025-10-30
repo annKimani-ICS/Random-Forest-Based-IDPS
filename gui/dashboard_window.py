@@ -129,6 +129,59 @@ class BlockIPDialog(QDialog):
         return self.reason_input.toPlainText()
 
 
+class CreateUserDialog(QDialog):
+    """Dialog to create a new user (ADMIN only)"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Create New User")
+        self.setModal(True)
+        self.resize(420, 240)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Email
+        email_row = QHBoxLayout()
+        email_row.addWidget(QLabel("Email:"))
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("analyst@ids-idps.com")
+        email_row.addWidget(self.email_input)
+        layout.addLayout(email_row)
+
+        # Password
+        pwd_row = QHBoxLayout()
+        pwd_row.addWidget(QLabel("Password:"))
+        self.pwd_input = QLineEdit()
+        self.pwd_input.setEchoMode(QLineEdit.Password)
+        self.pwd_input.setPlaceholderText("StrongPassword123!@#")
+        pwd_row.addWidget(self.pwd_input)
+        layout.addLayout(pwd_row)
+
+        # Role
+        role_row = QHBoxLayout()
+        role_row.addWidget(QLabel("Role:"))
+        self.role_combo = QComboBox()
+        self.role_combo.addItems(["ANALYST", "ADMIN"])  # default ANALYST
+        self.role_combo.setCurrentText("ANALYST")
+        role_row.addWidget(self.role_combo)
+        layout.addLayout(role_row)
+
+        # Buttons
+        btns = QHBoxLayout()
+        btns.addStretch()
+        create_btn = QPushButton("Create")
+        cancel_btn = QPushButton("Cancel")
+        create_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        create_btn.setStyleSheet("background-color: #10b981; color: white; border: none; padding: 8px 14px;")
+        cancel_btn.setStyleSheet("padding: 8px 14px;")
+        btns.addWidget(create_btn)
+        btns.addWidget(cancel_btn)
+        layout.addLayout(btns)
+
+    def get_values(self):
+        return self.email_input.text().strip(), self.pwd_input.text(), self.role_combo.currentText()
+
+
 class DashboardWindow(QMainWindow):
     """Main Dashboard Window"""
     def __init__(self, api_client: APIClient, user: dict):
@@ -1188,7 +1241,21 @@ class DashboardWindow(QMainWindow):
     
     def create_user_dialog(self):
         """Show create user dialog"""
-        QMessageBox.information(self, "Coming Soon", "User creation dialog - to be implemented")
+        if not self.is_admin:
+            QMessageBox.warning(self, "Permission Denied", "Only admins can create users")
+            return
+        dialog = CreateUserDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            email, password, role = dialog.get_values()
+            if not email or not password:
+                QMessageBox.warning(self, "Error", "Email and password are required")
+                return
+            try:
+                self.api_client.create_user(email=email, password=password, role=role)
+                QMessageBox.information(self, "Success", f"User {email} created")
+                self.load_users()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to create user: {str(e)}")
     
     def update_monitoring_status(self):
         """Update monitoring status display"""
