@@ -42,7 +42,7 @@ auth_header() {
   local t="${TOKEN}"
   if [[ -z "$t" && -n "${EMAIL}" && -n "${PASSWORD}" ]]; then
     # Attempt login to get token
-    t=$(curl -s -X POST "${BASE_URL}/api/auth/login" \
+    t=$(curl -s -X POST "${BASE_URL}/auth/login" \
       -H "Content-Type: application/json" \
       -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\"}")
     # Expecting {"access_token":"..."}
