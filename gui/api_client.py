@@ -136,6 +136,18 @@ class APIClient:
             timeout=self.timeout
         )
         return self._handle_response(response)
+
+    def download_alerts_csv(self, **filters) -> bytes:
+        """Download alerts CSV with filters. Returns raw bytes."""
+        response = self.session.get(
+            f"{self.base_url}/api/alerts/export",
+            params=filters,
+            headers=self._get_headers(),
+            timeout=self.timeout
+        )
+        if response.status_code >= 400:
+            return self._handle_response(response)  # will raise
+        return response.content
     
     def update_alert_status(self, alert_id: int, status: str) -> Dict[str, Any]:
         """Update alert status"""
