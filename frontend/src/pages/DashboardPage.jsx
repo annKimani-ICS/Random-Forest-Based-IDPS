@@ -22,6 +22,13 @@ function DashboardPage() {
     malicious: ''
   });
 
+  // Treat backend timestamps as UTC and display in the browser's local time
+  const toLocal = (utcString) => {
+    if (!utcString) return '';
+    const s = utcString.endsWith('Z') ? utcString : `${utcString}Z`;
+    return new Date(s).toLocaleString();
+  };
+
   useEffect(() => {
     loadDashboardData();
   }, [currentPage, filters]);
@@ -181,7 +188,7 @@ function DashboardPage() {
               </div>
               <div className="metric-item">
                 <span className="metric-label">Trained:</span>
-                <span className="metric-value">{new Date(metrics.trained_at).toLocaleDateString()}</span>
+                <span className="metric-value">{toLocal(metrics.trained_at)}</span>
               </div>
             </div>
           </div>
@@ -229,7 +236,7 @@ function DashboardPage() {
               <tbody>
                 {alerts.map((alert) => (
                   <tr key={alert.id}>
-                    <td>{new Date(alert.event_ts).toLocaleString()}</td>
+                    <td>{toLocal(alert.event_ts)}</td>
                     <td><code>{alert.src_ip}</code></td>
                     <td><code>{alert.dst_ip}</code></td>
                     <td>
