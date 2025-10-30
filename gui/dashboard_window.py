@@ -1151,15 +1151,48 @@ class DashboardWindow(QMainWindow):
             if status_filter != "All Status":
                 filters["status"] = status_filter
 
-            data = self.api_client.download_alerts_csv(**filters)
-
             from PyQt5.QtWidgets import QFileDialog
             path, _ = QFileDialog.getSaveFileName(self, "Save Alerts CSV", "alerts_export.csv", "CSV Files (*.csv)")
             if not path:
                 return
-            with open(path, "wb") as f:
-                f.write(data)
-            QMessageBox.information(self, "Success", f"Saved CSV to {path}")
+
+            try:
+                data = self.api_client.download_alerts_csv(**filters)
+                with open(path, "wb") as f:
+                    f.write(data)
+                QMessageBox.information(self, "Success", f"Saved CSV to {path}")
+                return
+            except Exception as e:
+                # Fallback: fetch pages via API and generate CSV locally
+                print(f"[Export Fallback] Server export failed: {e}. Generating client-side CSV...")
+                import csv
+                page = 1
+                page_size = 100
+                rows = []
+                while True:
+                    result = self.api_client.get_alerts(page=page, page_size=page_size, **filters)
+                    alerts = result.get("alerts", [])
+                    total = result.get("total", 0)
+                    for a in alerts:
+                        rows.append([
+                            a.get("id"),
+                            a.get("event_ts"),
+                            a.get("src_ip"),
+                            a.get("dst_ip"),
+                            a.get("attack_type"),
+                            f"{a.get('score', 0):.4f}",
+                            a.get("is_malicious"),
+                            a.get("status"),
+                            a.get("model_version"),
+                        ])
+                    if len(rows) >= total or not alerts:
+                        break
+                    page += 1
+                with open(path, "w", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["id","event_ts","src_ip","dst_ip","attack_type","score","is_malicious","status","model_version"])
+                    writer.writerows(rows)
+                QMessageBox.information(self, "Success", f"Saved CSV to {path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to export CSV: {str(e)}")
     
