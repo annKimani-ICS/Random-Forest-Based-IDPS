@@ -14,7 +14,7 @@ from PyQt5.QtGui import QFont, QColor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timezone
 from api_client import APIClient
 
 
@@ -1020,9 +1020,13 @@ class DashboardWindow(QMainWindow):
             
             for row, alert in enumerate(alerts):
                 self.alerts_table.setItem(row, 0, QTableWidgetItem(str(alert["id"])))
-                self.alerts_table.setItem(row, 1, QTableWidgetItem(
-                    datetime.fromisoformat(alert["event_ts"]).strftime("%Y-%m-%d %H:%M")
-                ))
+                # Treat backend timestamps as UTC and convert to local time for display
+                try:
+                    ts = datetime.fromisoformat(alert["event_ts"]).replace(tzinfo=timezone.utc).astimezone()
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M")
+                except Exception:
+                    ts_str = str(alert["event_ts"])  # fallback
+                self.alerts_table.setItem(row, 1, QTableWidgetItem(ts_str))
                 self.alerts_table.setItem(row, 2, QTableWidgetItem(alert["src_ip"]))
                 self.alerts_table.setItem(row, 3, QTableWidgetItem(alert["dst_ip"]))
                 self.alerts_table.setItem(row, 4, QTableWidgetItem(alert["attack_type"]))
