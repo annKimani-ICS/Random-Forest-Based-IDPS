@@ -77,6 +77,14 @@ class TrafficMonitor:
             'last_packet_time': None
         })
         
+        # Heuristic disabled by default to ensure ML model governs detection
+        self.enable_syn_heuristic = False
+        self.syn_burst_counts = defaultdict(lambda: {
+            'count': 0,
+            'first_seen': None
+        })
+        self.syn_threshold_per_second = 150  # trigger threshold (tunable)
+        
         # Window for aggregating packets (seconds)
         # Reduced to 2s to surface alerts faster during testing
         self.window_size = 2.0
@@ -250,6 +258,38 @@ class TrafficMonitor:
                     stats['src_ports'].add(packet[TCP].sport)
                 if TCP in packet and hasattr(packet[TCP], 'dport'):
                     stats['dst_ports'].add(packet[TCP].dport)
+                # Heuristic: detect SYN packets without ACK flag (SYN flood)
+                try:
+                    tcp_flags = int(packet[TCP].flags)
+                    is_syn = (tcp_flags & 0x02) != 0  # SYN flag
+                    is_ack = (tcp_flags & 0x10) != 0  # ACK flag
+                    if is_syn and not is_ack:
+                        key = f"{src_ip}_{dst_ip}_dport{getattr(packet[TCP], 'dport', 0)}"
+                        syn_stats = self.syn_burst_counts[key]
+                        now = datetime.now()
+                        if syn_stats['first_seen'] is None:
+                            syn_stats['first_seen'] = now
+                        syn_stats['count'] += 1
+                        elapsed_syn = (now - syn_stats['first_seen']).total_seconds()
+                        if elapsed_syn >= 1.0:
+                            if syn_stats['count'] >= self.syn_threshold_per_second:
+                                # Immediate alert for SYN flood
+                                score = 0.95
+                                burst_stats = {
+                                    'packets': syn_stats['count'],
+                                    'bytes': stats['bytes'],
+                                    'packets_per_second': syn_stats['count'] / max(elapsed_syn, 1.0),
+                                    'tcp_count': stats['tcp_count'],
+                                    'udp_count': stats['udp_count'],
+                                    'icmp_count': stats['icmp_count']
+                                }
+                                print(f"[MONITOR] SYN flood detected {src_ip} → {dst_ip} dport {getattr(packet[TCP],'dport',0)}: {syn_stats['count']} SYN/s")
+                                self._create_alert(src_ip, dst_ip, score, burst_stats)
+                            # reset window
+                            syn_stats['first_seen'] = now
+                            syn_stats['count'] = 0
+                except Exception:
+                    pass
             elif UDP in packet:
                 stats['udp_count'] += 1
                 if UDP in packet and hasattr(packet[UDP], 'sport'):
