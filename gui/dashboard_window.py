@@ -1031,9 +1031,13 @@ class DashboardWindow(QMainWindow):
             self.preview_table.setRowCount(len(alerts))
             
             for row, alert in enumerate(alerts):
-                self.preview_table.setItem(row, 0, QTableWidgetItem(
-                    datetime.fromisoformat(alert["event_ts"]).strftime("%Y-%m-%d %H:%M")
-                ))
+                # Convert backend UTC timestamp to local time for preview table
+                try:
+                    ts = datetime.fromisoformat(alert["event_ts"]).replace(tzinfo=timezone.utc).astimezone()
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M")
+                except Exception:
+                    ts_str = str(alert["event_ts"])  # fallback
+                self.preview_table.setItem(row, 0, QTableWidgetItem(ts_str))
                 self.preview_table.setItem(row, 1, QTableWidgetItem(alert["src_ip"]))
                 self.preview_table.setItem(row, 2, QTableWidgetItem(alert["dst_ip"]))
                 self.preview_table.setItem(row, 3, QTableWidgetItem(alert["attack_type"]))
