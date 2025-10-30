@@ -6,14 +6,15 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
     QComboBox, QMessageBox, QTabWidget, QGroupBox, QGridLayout,
-    QSlider, QFrame, QDialog, QLineEdit, QTextEdit, QSpinBox
+    QSlider, QFrame, QDialog, QLineEdit, QTextEdit, QSpinBox,
+    QScrollArea
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt5.QtGui import QFont, QColor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timezone
 from api_client import APIClient
 
 
@@ -128,6 +129,59 @@ class BlockIPDialog(QDialog):
         return self.reason_input.toPlainText()
 
 
+class CreateUserDialog(QDialog):
+    """Dialog to create a new user (ADMIN only)"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Create New User")
+        self.setModal(True)
+        self.resize(420, 240)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Email
+        email_row = QHBoxLayout()
+        email_row.addWidget(QLabel("Email:"))
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("analyst@ids-idps.com")
+        email_row.addWidget(self.email_input)
+        layout.addLayout(email_row)
+
+        # Password
+        pwd_row = QHBoxLayout()
+        pwd_row.addWidget(QLabel("Password:"))
+        self.pwd_input = QLineEdit()
+        self.pwd_input.setEchoMode(QLineEdit.Password)
+        self.pwd_input.setPlaceholderText("StrongPassword123!@#")
+        pwd_row.addWidget(self.pwd_input)
+        layout.addLayout(pwd_row)
+
+        # Role
+        role_row = QHBoxLayout()
+        role_row.addWidget(QLabel("Role:"))
+        self.role_combo = QComboBox()
+        self.role_combo.addItems(["ANALYST", "ADMIN"])  # default ANALYST
+        self.role_combo.setCurrentText("ANALYST")
+        role_row.addWidget(self.role_combo)
+        layout.addLayout(role_row)
+
+        # Buttons
+        btns = QHBoxLayout()
+        btns.addStretch()
+        create_btn = QPushButton("Create")
+        cancel_btn = QPushButton("Cancel")
+        create_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        create_btn.setStyleSheet("background-color: #10b981; color: white; border: none; padding: 8px 14px;")
+        cancel_btn.setStyleSheet("padding: 8px 14px;")
+        btns.addWidget(create_btn)
+        btns.addWidget(cancel_btn)
+        layout.addLayout(btns)
+
+    def get_values(self):
+        return self.email_input.text().strip(), self.pwd_input.text(), self.role_combo.currentText()
+
+
 class DashboardWindow(QMainWindow):
     """Main Dashboard Window"""
     def __init__(self, api_client: APIClient, user: dict):
@@ -146,6 +200,11 @@ class DashboardWindow(QMainWindow):
         
         self.setup_ui()
         self.load_data()
+        
+        # Update monitoring status on startup (if admin)
+        # Buttons will be initialized after setup_ui creates them
+        if self.is_admin:
+            QTimer.singleShot(1000, self.update_monitoring_status)  # Delay 1 second for UI to render
     
     def setup_ui(self):
         """Setup main UI"""
@@ -180,19 +239,19 @@ class DashboardWindow(QMainWindow):
             }
         """)
         
-        # Dashboard tab
+        # Dashboard tab (with scroll area)
         dashboard_tab = self.create_dashboard_tab()
         self.tabs.addTab(dashboard_tab, "📊 Dashboard")
         
-        # Alerts tab
+        # Alerts tab (with scroll area)
         alerts_tab = self.create_alerts_tab()
         self.tabs.addTab(alerts_tab, "🚨 Alerts")
         
-        # Security tab (for all users)
+        # Security tab (with scroll area)
         security_tab = self.create_security_tab()
         self.tabs.addTab(security_tab, "🔐 Security")
         
-        # Settings tab (Admin only)
+        # Settings tab (Admin only, with scroll area)
         if self.is_admin:
             settings_tab = self.create_settings_tab()
             self.tabs.addTab(settings_tab, "⚙️ Settings")
@@ -276,9 +335,23 @@ class DashboardWindow(QMainWindow):
     
     def create_dashboard_tab(self):
         """Create main dashboard tab with KPIs and charts"""
-        widget = QWidget()
+        # Create scroll area for dashboard content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
+        # Content widget
+        content_widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
         
         # KPI Cards
         kpi_layout = QHBoxLayout()
@@ -298,6 +371,132 @@ class DashboardWindow(QMainWindow):
         layout.addLayout(kpi_layout)
         
         layout.addSpacing(20)
+        
+        # Traffic Monitoring Control (Admin only)
+        if self.is_admin:
+            monitoring_group = QGroupBox("🔍 Traffic Monitoring")
+            monitoring_group.setStyleSheet("""
+                QGroupBox {
+                    font-weight: bold;
+                    border: 2px solid #2563eb;
+                    border-radius: 8px;
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    background-color: white;
+                }
+                QGroupBox::title {
+                    subcontrol-origin: margin;
+                    left: 10px;
+                    padding: 0 5px;
+                    color: #2563eb;
+                }
+            """)
+            
+            monitoring_layout = QVBoxLayout()
+            
+            # Status display
+            status_layout = QHBoxLayout()
+            self.monitoring_status_label = QLabel("Status: Checking...")
+            self.monitoring_status_label.setFont(QFont("Arial", 12, QFont.Bold))
+            self.monitoring_status_label.setStyleSheet("color: #64748b;")
+            status_layout.addWidget(self.monitoring_status_label)
+            
+            status_layout.addStretch()
+            
+            # Info labels
+            self.monitoring_interface_label = QLabel()
+            self.monitoring_interface_label.setFont(QFont("Arial", 10))
+            self.monitoring_interface_label.setStyleSheet("color: #64748b;")
+            status_layout.addWidget(self.monitoring_interface_label)
+            
+            self.monitoring_threshold_label = QLabel()
+            self.monitoring_threshold_label.setFont(QFont("Arial", 10))
+            self.monitoring_threshold_label.setStyleSheet("color: #64748b;")
+            status_layout.addWidget(self.monitoring_threshold_label)
+            
+            monitoring_layout.addLayout(status_layout)
+            monitoring_layout.addSpacing(15)
+            
+            # Control buttons
+            button_layout = QHBoxLayout()
+            
+            self.start_monitoring_btn = QPushButton("▶ Start Monitoring")
+            self.start_monitoring_btn.clicked.connect(self.start_monitoring)
+            self.start_monitoring_btn.setEnabled(True)  # Enabled by default
+            self.start_monitoring_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #10b981;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #059669;
+                }
+                QPushButton:disabled {
+                    background-color: #94a3b8;
+                }
+            """)
+            button_layout.addWidget(self.start_monitoring_btn)
+            
+            self.stop_monitoring_btn = QPushButton("⏹ Stop Monitoring")
+            self.stop_monitoring_btn.clicked.connect(self.stop_monitoring)
+            self.stop_monitoring_btn.setEnabled(False)  # Disabled by default
+            self.stop_monitoring_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #dc2626;
+                }
+                QPushButton:disabled {
+                    background-color: #94a3b8;
+                }
+            """)
+            button_layout.addWidget(self.stop_monitoring_btn)
+            
+            refresh_status_btn = QPushButton("🔄 Refresh Status")
+            refresh_status_btn.clicked.connect(self.update_monitoring_status)
+            refresh_status_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #2563eb;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #1e40af;
+                }
+            """)
+            button_layout.addWidget(refresh_status_btn)
+            
+            monitoring_layout.addLayout(button_layout)
+            
+            # Info text
+            info_label = QLabel(
+                "💡 When monitoring is active, the system will detect DDoS attacks in real-time. "
+                "Start monitoring, then launch attacks from your Kali VM to test."
+            )
+            info_label.setWordWrap(True)
+            info_label.setStyleSheet("color: #64748b; padding: 10px; background-color: #f1f5f9; border-radius: 5px;")
+            monitoring_layout.addWidget(info_label)
+            
+            monitoring_group.setLayout(monitoring_layout)
+            layout.addWidget(monitoring_group)
+            
+            layout.addSpacing(20)
         
         # Model Metrics Section
         metrics_group = QGroupBox("Model Performance (Random Forest)")
@@ -357,13 +556,26 @@ class DashboardWindow(QMainWindow):
         alerts_preview_group.setLayout(preview_layout)
         layout.addWidget(alerts_preview_group)
         
-        layout.addStretch()
+        # No stretch - let content determine size for scrolling
+        content_widget.setLayout(layout)
+        scroll_area.setWidget(content_widget)
         
-        widget.setLayout(layout)
-        return widget
+        return scroll_area
     
     def create_alerts_tab(self):
         """Create alerts management tab"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -418,10 +630,23 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(self.alerts_table)
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def create_security_tab(self):
         """Create security tab for MFA management"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -517,7 +742,8 @@ class DashboardWindow(QMainWindow):
         self.update_mfa_status()
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def update_mfa_status(self):
         """Update MFA status display"""
@@ -578,6 +804,18 @@ class DashboardWindow(QMainWindow):
     
     def create_settings_tab(self):
         """Create settings tab (Admin only)"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -688,13 +926,24 @@ class DashboardWindow(QMainWindow):
         blocks_group.setLayout(blocks_layout)
         layout.addWidget(blocks_group)
         
-        layout.addStretch()
-        
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def create_users_tab(self):
         """Create users management tab"""
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -729,7 +978,8 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(self.users_table)
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def on_threshold_changed(self, value):
         """Update threshold display"""
@@ -781,9 +1031,13 @@ class DashboardWindow(QMainWindow):
             self.preview_table.setRowCount(len(alerts))
             
             for row, alert in enumerate(alerts):
-                self.preview_table.setItem(row, 0, QTableWidgetItem(
-                    datetime.fromisoformat(alert["event_ts"]).strftime("%Y-%m-%d %H:%M")
-                ))
+                # Convert backend UTC timestamp to local time for preview table
+                try:
+                    ts = datetime.fromisoformat(alert["event_ts"]).replace(tzinfo=timezone.utc).astimezone()
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M")
+                except Exception:
+                    ts_str = str(alert["event_ts"])  # fallback
+                self.preview_table.setItem(row, 0, QTableWidgetItem(ts_str))
                 self.preview_table.setItem(row, 1, QTableWidgetItem(alert["src_ip"]))
                 self.preview_table.setItem(row, 2, QTableWidgetItem(alert["dst_ip"]))
                 self.preview_table.setItem(row, 3, QTableWidgetItem(alert["attack_type"]))
@@ -823,9 +1077,13 @@ class DashboardWindow(QMainWindow):
             
             for row, alert in enumerate(alerts):
                 self.alerts_table.setItem(row, 0, QTableWidgetItem(str(alert["id"])))
-                self.alerts_table.setItem(row, 1, QTableWidgetItem(
-                    datetime.fromisoformat(alert["event_ts"]).strftime("%Y-%m-%d %H:%M")
-                ))
+                # Treat backend timestamps as UTC and convert to local time for display
+                try:
+                    ts = datetime.fromisoformat(alert["event_ts"]).replace(tzinfo=timezone.utc).astimezone()
+                    ts_str = ts.strftime("%Y-%m-%d %H:%M")
+                except Exception:
+                    ts_str = str(alert["event_ts"])  # fallback
+                self.alerts_table.setItem(row, 1, QTableWidgetItem(ts_str))
                 self.alerts_table.setItem(row, 2, QTableWidgetItem(alert["src_ip"]))
                 self.alerts_table.setItem(row, 3, QTableWidgetItem(alert["dst_ip"]))
                 self.alerts_table.setItem(row, 4, QTableWidgetItem(alert["attack_type"]))
@@ -987,12 +1245,207 @@ class DashboardWindow(QMainWindow):
     
     def create_user_dialog(self):
         """Show create user dialog"""
-        QMessageBox.information(self, "Coming Soon", "User creation dialog - to be implemented")
+        if not self.is_admin:
+            QMessageBox.warning(self, "Permission Denied", "Only admins can create users")
+            return
+        dialog = CreateUserDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            email, password, role = dialog.get_values()
+            if not email or not password:
+                QMessageBox.warning(self, "Error", "Email and password are required")
+                return
+            try:
+                self.api_client.create_user(email=email, password=password, role=role)
+                QMessageBox.information(self, "Success", f"User {email} created")
+                self.load_users()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to create user: {str(e)}")
+    
+    def update_monitoring_status(self):
+        """Update monitoring status display"""
+        if not self.is_admin:
+            return
+        
+        # Check if monitoring UI elements exist
+        if not hasattr(self, 'monitoring_status_label'):
+            return  # UI not yet initialized
+        
+        try:
+            status_data = self.api_client.get_monitoring_status()
+            is_monitoring = status_data.get("is_monitoring", False)
+            interface = status_data.get("interface", "N/A")
+            threshold = status_data.get("threshold", 0.50)
+            
+            # Debug logging
+            print(f"[DEBUG] Status check: is_monitoring={is_monitoring}, interface={interface}, threshold={threshold}")
+            print(f"[DEBUG] Full status response: {status_data}")
+            
+            if is_monitoring:
+                self.monitoring_status_label.setText("Status: ✅ ACTIVE")
+                self.monitoring_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
+                if hasattr(self, 'start_monitoring_btn'):
+                    self.start_monitoring_btn.setEnabled(False)
+                if hasattr(self, 'stop_monitoring_btn'):
+                    self.stop_monitoring_btn.setEnabled(True)
+                print("[DEBUG] Status updated to ACTIVE")
+            else:
+                self.monitoring_status_label.setText("Status: ⏸ INACTIVE")
+                self.monitoring_status_label.setStyleSheet("color: #64748b; font-weight: bold;")
+                if hasattr(self, 'start_monitoring_btn'):
+                    self.start_monitoring_btn.setEnabled(True)
+                if hasattr(self, 'stop_monitoring_btn'):
+                    self.stop_monitoring_btn.setEnabled(False)
+                print("[DEBUG] Status updated to INACTIVE")
+            
+            if hasattr(self, 'monitoring_interface_label'):
+                self.monitoring_interface_label.setText(f"Interface: {interface or 'N/A'}")
+            if hasattr(self, 'monitoring_threshold_label'):
+                self.monitoring_threshold_label.setText(f"Threshold: {threshold:.2f}")
+            
+        except Exception as e:
+            # More graceful error handling
+            error_msg = str(e)
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                self.monitoring_status_label.setText("Status: ⚠️ Auth Required - Try Refreshing")
+                self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            elif "Connection" in error_msg or "timeout" in error_msg.lower():
+                self.monitoring_status_label.setText("Status: ⚠️ Backend Unavailable")
+                self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            else:
+                self.monitoring_status_label.setText("Status: ⚠️ Cannot Check Status")
+                self.monitoring_status_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            
+            # On error, allow user to try starting (may work even if status fails)
+            # But disable stop since we don't know if monitoring is running
+            if hasattr(self, 'start_monitoring_btn'):
+                self.start_monitoring_btn.setEnabled(True)  # Allow attempting to start
+            if hasattr(self, 'stop_monitoring_btn'):
+                self.stop_monitoring_btn.setEnabled(False)  # Disable stop if status unknown
+            
+            # Clear interface/threshold on error
+            if hasattr(self, 'monitoring_interface_label'):
+                self.monitoring_interface_label.setText("Interface: Unknown")
+            if hasattr(self, 'monitoring_threshold_label'):
+                self.monitoring_threshold_label.setText("Threshold: Unknown")
+            
+            print(f"[ERROR] Error updating monitoring status: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def start_monitoring(self):
+        """Start traffic monitoring"""
+        # Get interface (default to eth0)
+        import subprocess
+        try:
+            # Prefer capturing on all interfaces to avoid VM/NAT confusion
+            default_iface = "any"
+            # Fallback to detected default route interface if needed
+            result = subprocess.run(['ip', 'route'], capture_output=True, text=True, timeout=2)
+            for line in result.stdout.split('\n'):
+                if 'default' in line and 'dev' in line:
+                    parts = line.split()
+                    if 'dev' in parts:
+                        idx = parts.index('dev')
+                        if idx + 1 < len(parts):
+                            default_iface = parts[idx + 1] or default_iface
+                            break
+        except:
+            default_iface = "any"
+        
+        # Get threshold from current threshold card
+        current_threshold = 0.50
+        try:
+            threshold_text = self.threshold_card.value_label.text()
+            current_threshold = float(threshold_text)
+        except:
+            pass
+        
+        reply = QMessageBox.question(
+            self, "Start Monitoring",
+            f"Start traffic monitoring?\n\n"
+            f"Interface: {default_iface}\n"
+            f"Threshold: {current_threshold:.2f}\n\n"
+            f"This will begin real-time DDoS detection.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                self.api_client.start_monitoring(interface=default_iface, threshold=current_threshold)
+                
+                # Give backend a moment to start the monitoring thread
+                # Retry status check a few times with delays (non-blocking)
+                def check_status_attempt(attempt_num=1, max_attempts=6):
+                    """Check status with retries (non-blocking)"""
+                    print(f"[DEBUG] Status check attempt {attempt_num}/{max_attempts}")
+                    try:
+                        status_data = self.api_client.get_monitoring_status()
+                        print(f"[DEBUG] Status response on attempt {attempt_num}: {status_data}")
+                        if status_data.get("is_monitoring", False):
+                            # Status is now active, update UI
+                            print("[DEBUG] Monitoring is active, updating UI")
+                            self.update_monitoring_status()
+                            return
+                    except Exception as e:
+                        print(f"[DEBUG] Status check error on attempt {attempt_num}: {e}")
+                    
+                    # Schedule next attempt if not exceeded max attempts
+                    if attempt_num < max_attempts:
+                        QTimer.singleShot(1000, lambda: check_status_attempt(attempt_num + 1, max_attempts))
+                    else:
+                        # Final attempt after all retries
+                        print("[DEBUG] Final status update after all retries")
+                        self.update_monitoring_status()
+                
+                # Start retry checks after initial delay (increased to 1 second)
+                QTimer.singleShot(1000, lambda: check_status_attempt(1, 6))  # 6 attempts with 1s delays
+                
+                QMessageBox.information(
+                    self, 
+                    "Success", 
+                    f"Monitoring started successfully!\n\n"
+                    f"Interface: {default_iface}\n"
+                    f"Threshold: {current_threshold:.2f}\n\n"
+                    f"You can now launch DDoS attacks from Kali VM to test detection."
+                )
+                
+                # Also update immediately (optimistic update)
+                self.update_monitoring_status()
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to start monitoring:\n{str(e)}")
+                self.update_monitoring_status()
+    
+    def stop_monitoring(self):
+        """Stop traffic monitoring"""
+        reply = QMessageBox.question(
+            self, "Stop Monitoring",
+            "Stop traffic monitoring?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                self.api_client.stop_monitoring()
+                
+                # Stop should be immediate, but add small delay to ensure backend processes it
+                QTimer.singleShot(300, self.update_monitoring_status)
+                
+                QMessageBox.information(self, "Success", "Monitoring stopped successfully")
+                
+                # Update immediately
+                self.update_monitoring_status()
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to stop monitoring:\n{str(e)}")
+                self.update_monitoring_status()
     
     def refresh_data(self):
         """Refresh all data (called by timer)"""
         try:
             self.load_data()
+            if self.is_admin and hasattr(self, 'update_monitoring_status'):
+                self.update_monitoring_status()
         except:
             pass
     
