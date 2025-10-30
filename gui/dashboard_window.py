@@ -616,6 +616,12 @@ class DashboardWindow(QMainWindow):
         layout.addSpacing(10)
         
         # Alerts table
+        # Export button (available to all roles)
+        export_btn = QPushButton("⬇️ Export CSV")
+        export_btn.clicked.connect(self.export_alerts_csv)
+        export_btn.setStyleSheet("background-color: #2563eb; color: white; border: none; padding: 8px;")
+        filter_layout.addWidget(export_btn)
+
         self.alerts_table = QTableWidget()
         self.alerts_table.setColumnCount(8)
         self.alerts_table.setHorizontalHeaderLabels([
@@ -1131,6 +1137,31 @@ class DashboardWindow(QMainWindow):
         
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load alerts: {str(e)}")
+
+    def export_alerts_csv(self):
+        """Export alerts as CSV using current filters"""
+        try:
+            malicious_filter = self.malicious_filter.currentText()
+            status_filter = self.status_filter.currentText()
+            filters = {}
+            if malicious_filter == "Malicious Only":
+                filters["malicious"] = "true"
+            elif malicious_filter == "Benign Only":
+                filters["malicious"] = "false"
+            if status_filter != "All Status":
+                filters["status"] = status_filter
+
+            data = self.api_client.download_alerts_csv(**filters)
+
+            from PyQt5.QtWidgets import QFileDialog
+            path, _ = QFileDialog.getSaveFileName(self, "Save Alerts CSV", "alerts_export.csv", "CSV Files (*.csv)")
+            if not path:
+                return
+            with open(path, "wb") as f:
+                f.write(data)
+            QMessageBox.information(self, "Success", f"Saved CSV to {path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to export CSV: {str(e)}")
     
     def acknowledge_alert(self, alert_id):
         """Acknowledge an alert"""

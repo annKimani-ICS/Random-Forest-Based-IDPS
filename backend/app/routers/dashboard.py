@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 from typing import Optional, List
+import io
+import csv
 from uuid import UUID
 from app.database import get_db
 from app.models import User, Alert, Model, Threshold, BlockRule, AuditLog, UserRole, AlertStatus
@@ -143,6 +146,55 @@ async def get_alerts(
         page=page,
         page_size=page_size
     )
+
+@router.get("/alerts/export")
+async def export_alerts_csv(
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    attack_type: Optional[str] = Query(None),
+    status: Optional[AlertStatus] = Query(None),
+    malicious: Optional[bool] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export alerts as CSV with filters."""
+    query = db.query(Alert)
+
+    if from_date is None and to_date is None:
+        from_date = datetime.utcnow() - timedelta(days=7)
+
+    if from_date:
+        query = query.filter(Alert.event_ts >= from_date)
+    if to_date:
+        query = query.filter(Alert.event_ts <= to_date)
+    if attack_type:
+        query = query.filter(Alert.attack_type == attack_type)
+    if status:
+        query = query.filter(Alert.status == status)
+    if malicious is not None:
+        query = query.filter(Alert.is_malicious == malicious)
+
+    alerts = query.order_by(desc(Alert.event_ts)).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["id", "event_ts", "src_ip", "dst_ip", "attack_type", "score", "is_malicious", "status", "model_version"])
+    for a in alerts:
+        writer.writerow([
+            a.id,
+            a.event_ts.isoformat(),
+            str(a.src_ip),
+            str(a.dst_ip),
+            a.attack_type,
+            float(a.score),
+            a.is_malicious,
+            a.status.value if hasattr(a.status, 'value') else a.status,
+            a.model_version,
+        ])
+    buf.seek(0)
+
+    headers = {"Content-Disposition": "attachment; filename=alerts_export.csv"}
+    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers=headers)
 
 @router.patch("/alerts/{alert_id}/status")
 async def update_alert_status(
