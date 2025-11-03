@@ -234,7 +234,7 @@ function UsersPage() {
                   </div>
                 </div>
 
-                <div className="user-actions">
+                <div className="user-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <select
                     value={user.role}
                     onChange={(e) => handleChangeRole(user.id, e.target.value)}
@@ -251,16 +251,16 @@ function UsersPage() {
                     {user.is_active ? 'Deactivate' : 'Activate'}
                   </button>
 
-                  <button
-                    className="btn-small btn-danger"
-                    title="Delete user"
-                    onClick={() => handleDeleteUser(user.id, user.email)}
-                    disabled={currentUser?.id === user.id}
-                    aria-disabled={currentUser?.id === user.id}
-                  >
-                    <Trash size={14} />
-                    <span style={{ marginLeft: 6 }}>Delete</span>
-                  </button>
+                  {(user.role === 'ANALYST' || (user.role === 'ADMIN' && currentUser?.id !== user.id)) && (
+                    <button
+                      className="btn-small btn-danger"
+                      title="Delete user"
+                      onClick={() => handleDeleteUser(user.id, user.email)}
+                    >
+                      <Trash size={14} />
+                      <span style={{ marginLeft: 6 }}>Delete</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
