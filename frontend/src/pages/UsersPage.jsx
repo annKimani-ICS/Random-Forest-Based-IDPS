@@ -235,6 +235,17 @@ function UsersPage() {
                 </div>
 
                 <div className="user-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {(user.role === 'ANALYST' || (user.role === 'ADMIN' && currentUser?.id !== user.id)) && (
+                    <button
+                      className="btn-small btn-danger"
+                      title="Delete user"
+                      onClick={() => handleDeleteUser(user.id, user.email)}
+                    >
+                      <Trash size={14} />
+                      <span style={{ marginLeft: 6 }}>Delete</span>
+                    </button>
+                  )}
+
                   <select
                     value={user.role}
                     onChange={(e) => handleChangeRole(user.id, e.target.value)}
@@ -250,17 +261,6 @@ function UsersPage() {
                   >
                     {user.is_active ? 'Deactivate' : 'Activate'}
                   </button>
-
-                  {(user.role === 'ANALYST' || (user.role === 'ADMIN' && currentUser?.id !== user.id)) && (
-                    <button
-                      className="btn-small btn-danger"
-                      title="Delete user"
-                      onClick={() => handleDeleteUser(user.id, user.email)}
-                    >
-                      <Trash size={14} />
-                      <span style={{ marginLeft: 6 }}>Delete</span>
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
