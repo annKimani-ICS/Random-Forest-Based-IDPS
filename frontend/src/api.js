@@ -130,6 +130,9 @@ export const usersAPI = {
   
   resetPassword: (userId, new_password) =>
     api.post(`/users/${userId}/reset-password`, { new_password }),
+
+  deleteUser: (userId) =>
+    api.delete(`/users/${userId}`),
 };
 
 export default api;

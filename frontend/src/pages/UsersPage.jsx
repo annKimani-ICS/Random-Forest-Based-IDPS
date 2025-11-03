@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../api';
-import { ArrowLeft, UserPlus, Shield, User } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, User, Trash } from 'lucide-react';
 import './SettingsPage.css';
 
 function UsersPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: currentUser } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +81,22 @@ function UsersPage() {
     } catch (err) {
       console.error('Error updating user:', err);
       setError(err.response?.data?.detail || 'Failed to update user');
+    }
+  };
+
+  const handleDeleteUser = async (userId, email) => {
+    const confirmed = window.confirm(`Delete user ${email}? This action cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      setError('');
+      setSuccess('');
+      await usersAPI.deleteUser(userId);
+      setSuccess(`User ${email} deleted`);
+      loadUsers();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setError(err.response?.data?.detail || 'Failed to delete user');
     }
   };
 
@@ -223,6 +239,17 @@ function UsersPage() {
                     onClick={() => handleToggleActive(user.id, user.is_active)}
                   >
                     {user.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+
+                  <button
+                    className="btn-small btn-danger"
+                    title="Delete user"
+                    onClick={() => handleDeleteUser(user.id, user.email)}
+                    disabled={currentUser?.id === user.id}
+                    aria-disabled={currentUser?.id === user.id}
+                  >
+                    <Trash size={14} />
+                    <span style={{ marginLeft: 6 }}>Delete</span>
                   </button>
                 </div>
               </div>
