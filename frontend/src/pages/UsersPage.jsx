@@ -111,7 +111,17 @@ function UsersPage() {
           <ArrowLeft size={20} />
           Back to Dashboard
         </button>
-        <h1>User Management</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1>User Management</h1>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreateForm(true)}
+            style={{ padding: '8px 12px' }}
+          >
+            <UserPlus size={18} />
+            <span style={{ marginLeft: 6 }}>Create User</span>
+          </button>
+        </div>
       </div>
 
       <div className="settings-content">
