@@ -975,11 +975,14 @@ class DashboardWindow(QMainWindow):
         
         # Users table
         self.users_table = QTableWidget()
-        self.users_table.setColumnCount(6)
+        # Add a hidden ID column at the end for operations
+        self.users_table.setColumnCount(7)
         self.users_table.setHorizontalHeaderLabels([
-            "Email", "Role", "2FA Status", "Active", "Last Login", "Actions"
+            "Email", "Role", "2FA Status", "Active", "Last Login", "Actions", "_id"
         ])
         self.users_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # Hide the internal id column
+        self.users_table.setColumnHidden(6, True)
         
         layout.addWidget(self.users_table)
         
@@ -1301,11 +1304,80 @@ class DashboardWindow(QMainWindow):
                 else:
                     self.users_table.setItem(row, 4, QTableWidgetItem("Never"))
                 
-                # Actions placeholder
-                self.users_table.setItem(row, 5, QTableWidgetItem(""))
+                # Store id hidden for actions
+                self.users_table.setItem(row, 6, QTableWidgetItem(str(user["id"])))
+
+                # Build actions widget
+                btn_widget = QWidget()
+                btn_layout = QHBoxLayout()
+                btn_layout.setContentsMargins(5, 2, 5, 2)
+
+                # Delete button rules:
+                # - Hide for self (same email as logged-in user)
+                # - Show for analysts
+                # - Show for other admins (backend still prevents deleting last admin)
+                can_show_delete = (user["email"] != self.user.get("email")) and (
+                    user["role"] == "ANALYST" or (user["role"] == "ADMIN" and user["email"] != self.user.get("email"))
+                )
+                if can_show_delete:
+                    del_btn = QPushButton("Delete")
+                    del_btn.setStyleSheet("background-color: #ef4444; color: white; border: none; padding: 6px 10px;")
+                    # Capture user id/email in lambda default args
+                    del_btn.clicked.connect(lambda checked, uid=str(user["id"]), uemail=user["email"]: self.delete_user(uid, uemail))
+                    btn_layout.addWidget(del_btn)
+
+                # Role select
+                role_combo = QComboBox()
+                role_combo.addItems(["ANALYST", "ADMIN"])
+                role_combo.setCurrentText(user["role"])
+                role_combo.currentTextChanged.connect(lambda new_role, uid=str(user["id"]): self.change_user_role(uid, new_role))
+                btn_layout.addWidget(role_combo)
+
+                # Activate/Deactivate
+                act_btn = QPushButton("Deactivate" if user["is_active"] else "Activate")
+                act_btn.setStyleSheet("background-color: #f59e0b; color: white; border: none; padding: 6px 10px;")
+                act_btn.clicked.connect(lambda checked, uid=str(user["id"]), curr=user["is_active"]: self.toggle_user_active(uid, curr))
+                btn_layout.addWidget(act_btn)
+
+                btn_widget.setLayout(btn_layout)
+                self.users_table.setCellWidget(row, 5, btn_widget)
         
         except Exception as e:
             print(f"Error loading users: {e}")
+
+    def delete_user(self, user_id: str, email: str):
+        """Delete a user after confirmation"""
+        if email == self.user.get("email"):
+            QMessageBox.warning(self, "Not Allowed", "You cannot delete your own account.")
+            return
+        reply = QMessageBox.question(
+            self, "Confirm Delete",
+            f"Delete user {email}? This action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            try:
+                self.api_client.delete_user(user_id)
+                QMessageBox.information(self, "Success", f"User {email} deleted")
+                self.load_users()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete user: {str(e)}")
+
+    def change_user_role(self, user_id: str, new_role: str):
+        """Change a user's role"""
+        try:
+            self.api_client.update_user(user_id, role=new_role)
+            self.load_users()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to update role: {str(e)}")
+
+    def toggle_user_active(self, user_id: str, current_status: bool):
+        """Toggle user active status"""
+        try:
+            self.api_client.update_user(user_id, is_active=(not current_status))
+            self.load_users()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to update status: {str(e)}")
     
     def create_user_dialog(self):
         """Show create user dialog"""
