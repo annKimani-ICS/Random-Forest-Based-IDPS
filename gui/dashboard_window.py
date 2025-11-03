@@ -1436,7 +1436,14 @@ class DashboardWindow(QMainWindow):
             if hasattr(self, 'monitoring_interface_label'):
                 self.monitoring_interface_label.setText(f"Interface: {interface or 'N/A'}")
             if hasattr(self, 'monitoring_threshold_label'):
-                self.monitoring_threshold_label.setText(f"Threshold: {threshold:.2f}")
+                try:
+                    thr_value = float(threshold) if threshold is not None else None
+                except Exception:
+                    thr_value = None
+                if thr_value is None:
+                    self.monitoring_threshold_label.setText("Threshold: Unknown")
+                else:
+                    self.monitoring_threshold_label.setText(f"Threshold: {thr_value:.2f}")
             
         except Exception as e:
             # More graceful error handling
