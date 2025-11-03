@@ -198,3 +198,50 @@ async def reset_user_password(
     
     return {"message": "Password reset successfully"}
 
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    user_id: UUID,
+    request: Request,
+    current_user: User = Depends(require_role([UserRole.ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Delete a user (ADMIN only)
+    - Prevent deleting self
+    - Prevent deleting the last remaining ADMIN
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Prevent self-delete
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admins cannot delete their own account"
+        )
+
+    # If target is ADMIN, ensure not the last admin
+    if user.role == UserRole.ADMIN:
+        admin_count = db.query(User).filter(User.role == UserRole.ADMIN, User.is_active == True).count()
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete the last remaining admin"
+            )
+
+    db.delete(user)
+    db.commit()
+
+    log_audit(db, str(current_user.id), "USER_DELETE", {
+        "deleted_user_id": str(user_id),
+        "deleted_user_email": user.email,
+        "deleted_user_role": user.role.value,
+    }, request.client.host)
+
+    return
+

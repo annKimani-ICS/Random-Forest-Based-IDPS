@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../api';
-import { ArrowLeft, UserPlus, Shield, User } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, User, Trash } from 'lucide-react';
 import './SettingsPage.css';
 
 function UsersPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: currentUser } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +84,22 @@ function UsersPage() {
     }
   };
 
+  const handleDeleteUser = async (userId, email) => {
+    const confirmed = window.confirm(`Delete user ${email}? This action cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      setError('');
+      setSuccess('');
+      await usersAPI.deleteUser(userId);
+      setSuccess(`User ${email} deleted`);
+      loadUsers();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setError(err.response?.data?.detail || 'Failed to delete user');
+    }
+  };
+
   if (loading) {
     return <div className="loading-screen"><p>Loading users...</p></div>;
   }
@@ -95,7 +111,17 @@ function UsersPage() {
           <ArrowLeft size={20} />
           Back to Dashboard
         </button>
-        <h1>User Management</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1>User Management</h1>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreateForm(true)}
+            style={{ padding: '8px 12px' }}
+          >
+            <UserPlus size={18} />
+            <span style={{ marginLeft: 6 }}>Create User</span>
+          </button>
+        </div>
       </div>
 
       <div className="settings-content">
@@ -208,7 +234,18 @@ function UsersPage() {
                   </div>
                 </div>
 
-                <div className="user-actions">
+                <div className="user-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {(user.role === 'ANALYST' || (user.role === 'ADMIN' && currentUser?.id !== user.id)) && (
+                    <button
+                      className="btn-small btn-danger"
+                      title="Delete user"
+                      onClick={() => handleDeleteUser(user.id, user.email)}
+                    >
+                      <Trash size={14} />
+                      <span style={{ marginLeft: 6 }}>Delete</span>
+                    </button>
+                  )}
+
                   <select
                     value={user.role}
                     onChange={(e) => handleChangeRole(user.id, e.target.value)}

@@ -238,6 +238,18 @@ class APIClient:
         )
         return self._handle_response(response)
     
+    def delete_user(self, user_id: str) -> None:
+        """Delete a user (ADMIN only)"""
+        response = self.session.delete(
+            f"{self.base_url}/users/{user_id}",
+            headers=self._get_headers(),
+            timeout=self.timeout
+        )
+        # Expect 204 No Content; still run through handler for consistency
+        if response.status_code >= 400:
+            self._handle_response(response)
+        return None
+    
     # Monitoring APIs
     def start_monitoring(self, interface: str = "eth0", threshold: float = 0.50) -> Dict[str, Any]:
         """Start traffic monitoring"""
