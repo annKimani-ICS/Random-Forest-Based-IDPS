@@ -162,3 +162,14 @@ class AuditLogResponse(AppBaseModel):
     class Config:
         from_attributes = True
 
+# Attack Trends Schemas
+class AttackTrendData(AppBaseModel):
+    week_start: str
+    total_attacks: int
+    malicious_count: int
+    benign_count: int
+    attack_types: Dict[str, int]
+
+class AttackTrendsResponse(AppBaseModel):
+    trends: List[AttackTrendData]
+

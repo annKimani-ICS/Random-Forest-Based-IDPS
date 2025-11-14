@@ -12,7 +12,7 @@ from app.models import User, Alert, Model, Threshold, BlockRule, AuditLog, UserR
 from app.schemas import (
     KPIResponse, MetricsResponse, AlertResponse, AlertListResponse,
     ThresholdResponse, ThresholdUpdate, BlockRuleCreate, BlockRuleResponse,
-    AlertUpdateStatus, AuditLogResponse
+    AlertUpdateStatus, AuditLogResponse, AttackTrendsResponse, AttackTrendData
 )
 from app.auth import get_current_user, require_role
 
@@ -195,6 +195,66 @@ async def export_alerts_csv(
 
     headers = {"Content-Disposition": "attachment; filename=alerts_export.csv"}
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers=headers)
+
+@router.get("/alerts/trends", response_model=AttackTrendsResponse)
+async def get_attack_trends(
+    weeks: int = Query(8, ge=1, le=52, description="Number of weeks to analyze"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get attack trends aggregated by week"""
+    from collections import defaultdict
+    
+    # Calculate the start date for the analysis
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(weeks=weeks)
+    
+    # Fetch all alerts within the time range
+    alerts = db.query(Alert).filter(
+        Alert.event_ts >= start_date,
+        Alert.event_ts <= end_date
+    ).order_by(Alert.event_ts).all()
+    
+    # Group alerts by week
+    weekly_data = defaultdict(lambda: {
+        'total': 0,
+        'malicious': 0,
+        'benign': 0,
+        'attack_types': defaultdict(int)
+    })
+    
+    for alert in alerts:
+        # Calculate the start of the week (Monday) for this alert
+        days_since_monday = alert.event_ts.weekday()
+        week_start = (alert.event_ts - timedelta(days=days_since_monday)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        week_key = week_start.strftime('%Y-%m-%d')
+        
+        weekly_data[week_key]['total'] += 1
+        if alert.is_malicious:
+            weekly_data[week_key]['malicious'] += 1
+        else:
+            weekly_data[week_key]['benign'] += 1
+        weekly_data[week_key]['attack_types'][alert.attack_type] += 1
+    
+    # Generate all weeks in the range (including weeks with no data)
+    trends = []
+    current = start_date - timedelta(days=start_date.weekday())  # Start from Monday
+    while current <= end_date:
+        week_key = current.strftime('%Y-%m-%d')
+        data = weekly_data[week_key]
+        
+        trends.append(AttackTrendData(
+            week_start=week_key,
+            total_attacks=data['total'],
+            malicious_count=data['malicious'],
+            benign_count=data['benign'],
+            attack_types=dict(data['attack_types'])
+        ))
+        current += timedelta(weeks=1)
+    
+    return AttackTrendsResponse(trends=trends)
 
 @router.patch("/alerts/{alert_id}/status")
 async def update_alert_status(

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI } from '../api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Shield, AlertTriangle, Ban, Activity, LogOut, Settings, Users, Menu } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Shield, AlertTriangle, Ban, Activity, LogOut, Settings, Users, Menu, TrendingUp } from 'lucide-react';
 import './DashboardPage.css';
 
 function DashboardPage() {
@@ -12,6 +12,7 @@ function DashboardPage() {
   const [kpis, setKpis] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,20 +37,22 @@ function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [kpisRes, metricsRes, alertsRes] = await Promise.all([
+      const [kpisRes, metricsRes, alertsRes, trendsRes] = await Promise.all([
         dashboardAPI.getKPIs(),
         dashboardAPI.getMetrics(),
         dashboardAPI.getAlerts({
           page: currentPage,
           page_size: 25,
           ...filters
-        })
+        }),
+        dashboardAPI.getAttackTrends(8)
       ]);
 
       setKpis(kpisRes.data);
       setMetrics(metricsRes.data);
       setAlerts(alertsRes.data.alerts);
       setTotalAlerts(alertsRes.data.total);
+      setTrends(trendsRes.data.trends);
       setError('');
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -190,6 +193,88 @@ function DashboardPage() {
                 <span className="metric-label">Trained:</span>
                 <span className="metric-value">{toLocal(metrics.trained_at)}</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Attack Trends Chart */}
+        {trends && trends.length > 0 && (
+          <div className="trends-card">
+            <div className="section-header">
+              <h2>
+                <TrendingUp size={24} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                Attack Trends Over Time
+              </h2>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trends} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="week_start" 
+                    label={{ value: 'Week Starting', position: 'insideBottom', offset: -5 }}
+                  />
+                  <YAxis label={{ value: 'Number of Alerts', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div style={{ 
+                            backgroundColor: 'white', 
+                            padding: '10px', 
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                          }}>
+                            <p style={{ fontWeight: 'bold' }}>Week of {data.week_start}</p>
+                            <p style={{ color: '#ef4444' }}>Malicious: {data.malicious_count}</p>
+                            <p style={{ color: '#10b981' }}>Benign: {data.benign_count}</p>
+                            <p style={{ fontWeight: 'bold' }}>Total: {data.total_attacks}</p>
+                            {Object.keys(data.attack_types).length > 0 && (
+                              <>
+                                <hr style={{ margin: '5px 0' }} />
+                                <p style={{ fontWeight: 'bold', fontSize: '12px' }}>Attack Types:</p>
+                                {Object.entries(data.attack_types).map(([type, count]) => (
+                                  <p key={type} style={{ fontSize: '12px' }}>{type}: {count}</p>
+                                ))}
+                              </>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="malicious_count" 
+                    name="Malicious" 
+                    stroke="#ef4444" 
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="benign_count" 
+                    name="Benign" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="total_attacks" 
+                    name="Total" 
+                    stroke="#2563eb" 
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}
