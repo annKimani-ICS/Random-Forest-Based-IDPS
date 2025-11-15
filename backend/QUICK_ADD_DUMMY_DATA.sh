@@ -24,6 +24,10 @@ if ! python3 -c "import sqlalchemy" 2>/dev/null; then
     echo "✅ Dependencies installed"
 fi
 
+# Remove any existing benign alerts first
+echo "🧹 Removing any existing benign alerts..."
+python3 remove_benign_alerts.py
+
 # Run the script (only creates malicious alerts)
 echo "🚀 Running dummy data script (malicious alerts only)..."
 python3 populate_dummy_data.py

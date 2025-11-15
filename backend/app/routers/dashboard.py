@@ -69,9 +69,10 @@ async def get_kpis(
     db: Session = Depends(get_db)
 ):
     """Get dashboard KPI metrics"""
-    # Alerts in last 24 hours
+    # Alerts in last 24 hours (only malicious alerts)
     alerts_24h = db.query(func.count(Alert.id)).filter(
-        Alert.event_ts >= datetime.utcnow() - timedelta(hours=24)
+        Alert.event_ts >= datetime.utcnow() - timedelta(hours=24),
+        Alert.is_malicious == True
     ).scalar()
     
     # Active block rules
@@ -162,8 +163,14 @@ async def export_alerts_csv(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Export alerts as CSV with filters."""
+    """Export alerts as CSV with filters - Only malicious alerts by default."""
     query = db.query(Alert)
+
+    # Only export malicious alerts by default (system only processes malicious alerts)
+    if malicious is None:
+        query = query.filter(Alert.is_malicious == True)
+    elif malicious is not None:
+        query = query.filter(Alert.is_malicious == malicious)
 
     if from_date is None and to_date is None:
         from_date = datetime.utcnow() - timedelta(days=7)
@@ -176,8 +183,6 @@ async def export_alerts_csv(
         query = query.filter(Alert.attack_type == attack_type)
     if status:
         query = query.filter(Alert.status == status)
-    if malicious is not None:
-        query = query.filter(Alert.is_malicious == malicious)
 
     alerts = query.order_by(desc(Alert.event_ts)).all()
 
@@ -214,10 +219,11 @@ async def get_attack_trends(
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(weeks=weeks)
     
-    # Fetch all alerts within the time range
+    # Fetch all malicious alerts within the time range (system only processes malicious alerts)
     alerts = db.query(Alert).filter(
         Alert.event_ts >= start_date,
-        Alert.event_ts <= end_date
+        Alert.event_ts <= end_date,
+        Alert.is_malicious == True
     ).order_by(Alert.event_ts).all()
     
     # Group alerts by week
