@@ -3,7 +3,7 @@ Script to populate database with dummy alerts and correct model metrics
 This will make the GUI display realistic data for demonstration
 """
 from app.database import SessionLocal
-from app.models import Model, Alert, Threshold, User
+from app.models import Model, Alert, Threshold, User, AlertStatus
 from datetime import datetime, timedelta
 import uuid
 import random
@@ -21,30 +21,49 @@ def create_dummy_alerts():
         model = db.query(Model).order_by(Model.trained_at.desc()).first()
         model_version = model.version if model else "iteration4_voting_ensemble"
         
-        # DDoS/DoS attack types only (matching your project focus)
+        # Specific DDoS attack types (matching the new attack identification system)
         attack_types = [
-            "DDoS", "DoS", "DDoS Amplification", "DDoS Reflection", "DDoS Botnet",
-            "DDoS Volumetric", "DDoS Protocol", "DDoS Application", "DDoS Infrastructure",
-            "DDoS Network", "DDoS Transport", "DDoS Application Layer"
+            "DDoS TCP SYN Flood",
+            "DDoS TCP Flood",
+            "DDoS TCP",
+            "DDoS UDP Flood",
+            "DDoS UDP Reflection",
+            "DDoS UDP",
+            "DDoS ICMP Flood",
+            "DDoS ICMP",
+            "DDoS Mixed Protocol",
+            "DDoS"
         ]
         
-        statuses = ["NEW", "ACK", "BLOCKED", "CLOSED"]
+        statuses = [AlertStatus.NEW, AlertStatus.ACK, AlertStatus.BLOCKED, AlertStatus.CLOSED]
         
-        # Generate 25 dummy alerts over the last 7 days
+        # Generate 50 dummy alerts over the last 7 days for better chart visualization
         alerts = []
         base_time = datetime.utcnow() - timedelta(days=7)
         
-        for i in range(25):
-            # Random time within last 7 days
+        # Create some recurring source IPs for top IPs chart
+        common_ips = [
+            "192.168.1.100", "192.168.1.101", "192.168.1.102",
+            "10.0.0.50", "10.0.0.51", "10.0.0.52",
+            "172.16.0.200", "172.16.0.201"
+        ]
+        
+        for i in range(50):
+            # Random time within last 7 days (distribute more evenly)
             random_hours = random.randint(0, 168)  # 7 days * 24 hours
             alert_time = base_time + timedelta(hours=random_hours)
             
-            # Random IP addresses
-            src_ip = f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
+            # Use common IPs 60% of the time for better top IPs visualization
+            if random.random() < 0.6:
+                src_ip = random.choice(common_ips)
+            else:
+                src_ip = f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
             dst_ip = f"10.0.{random.randint(1, 255)}.{random.randint(1, 255)}"
             
-            # Random attack type and score
-            attack_type = random.choice(attack_types)
+            # Weighted attack type selection for better distribution visualization
+            # More common: TCP SYN Flood, UDP Flood, TCP Flood
+            attack_type_weights = [0.20, 0.15, 0.10, 0.15, 0.10, 0.10, 0.08, 0.05, 0.05, 0.02]
+            attack_type = random.choices(attack_types, weights=attack_type_weights)[0]
             score = round(random.uniform(0.3, 0.95), 4)
             
             # Determine if malicious based on score
@@ -85,6 +104,14 @@ def create_dummy_alerts():
         print(f"   - Benign alerts: {len(alerts) - malicious_count}")
         print(f"   - Time range: Last 7 days")
         print(f"   - Model version: {model_version}")
+        
+        # Show attack type distribution
+        print("\n📊 Attack Type Distribution:")
+        attack_type_counts = {}
+        for alert in alerts:
+            attack_type_counts[alert.attack_type] = attack_type_counts.get(alert.attack_type, 0) + 1
+        for attack_type, count in sorted(attack_type_counts.items(), key=lambda x: x[1], reverse=True):
+            print(f"   - {attack_type}: {count}")
         
     except Exception as e:
         print(f"❌ Error creating alerts: {e}")
