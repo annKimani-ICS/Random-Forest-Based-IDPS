@@ -105,8 +105,14 @@ async def get_alerts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get paginated alerts with filters"""
+    """Get paginated alerts with filters - Only shows malicious alerts by default"""
     query = db.query(Alert)
+    
+    # Only show malicious alerts by default (system only processes malicious alerts)
+    if malicious is None:
+        query = query.filter(Alert.is_malicious == True)
+    elif malicious is not None:
+        query = query.filter(Alert.is_malicious == malicious)
     
     # Apply filters
     if from_date is None and to_date is None:
@@ -121,8 +127,6 @@ async def get_alerts(
         query = query.filter(Alert.attack_type == attack_type)
     if status:
         query = query.filter(Alert.status == status)
-    if malicious is not None:
-        query = query.filter(Alert.is_malicious == malicious)
     
     # Get total count
     total = query.count()
@@ -299,26 +303,21 @@ async def get_alert_analytics(
         for ip, count in sorted(src_ip_counts.items(), key=lambda x: x[1], reverse=True)[:10]
     ]
     
-    # Alerts over time (by day)
-    daily_counts = defaultdict(lambda: {"date": "", "count": 0, "malicious": 0, "benign": 0})
+    # Alerts over time (by day) - all alerts are malicious
+    daily_counts = defaultdict(lambda: {"date": "", "count": 0})
     for alert in alerts:
         date_key = alert.event_ts.date().isoformat()
         daily_counts[date_key]["date"] = date_key
         daily_counts[date_key]["count"] += 1
-        if alert.is_malicious:
-            daily_counts[date_key]["malicious"] += 1
-        else:
-            daily_counts[date_key]["benign"] += 1
     
     alerts_over_time = sorted(
-        [{"date": v["date"], "count": v["count"], "malicious": v["malicious"], "benign": v["benign"]} 
+        [{"date": v["date"], "count": v["count"]} 
          for v in daily_counts.values()],
         key=lambda x: x["date"]
     )
     
-    # Total counts
-    malicious_count = sum(1 for alert in alerts if alert.is_malicious)
-    benign_count = len(alerts) - malicious_count
+    # Total counts - all alerts are malicious
+    malicious_count = len(alerts)
     
     return AlertAnalyticsResponse(
         attack_type_distribution=dict(attack_type_dist),
@@ -327,7 +326,7 @@ async def get_alert_analytics(
         alerts_over_time=alerts_over_time,
         total_alerts=len(alerts),
         malicious_count=malicious_count,
-        benign_count=benign_count
+        benign_count=0  # System only processes malicious alerts
     )
 
 @router.patch("/alerts/{alert_id}/status")

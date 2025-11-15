@@ -627,16 +627,14 @@ class DashboardWindow(QMainWindow):
         summary_layout = QHBoxLayout()
         self.total_alerts_label = QLabel("Total Alerts: 0")
         self.malicious_label = QLabel("Malicious: 0")
-        self.benign_label = QLabel("Benign: 0")
-        for label in [self.total_alerts_label, self.malicious_label, self.benign_label]:
+        # Remove benign label - system only shows malicious alerts
+        for label in [self.total_alerts_label, self.malicious_label]:
             label.setFont(QFont("Arial", 11, QFont.Bold))
             label.setStyleSheet("padding: 8px 15px;")
         self.total_alerts_label.setStyleSheet("padding: 8px 15px; color: #2563eb;")
         self.malicious_label.setStyleSheet("padding: 8px 15px; color: #ef4444; font-weight: bold;")
-        self.benign_label.setStyleSheet("padding: 8px 15px; color: #10b981; font-weight: bold;")
         summary_layout.addWidget(self.total_alerts_label)
         summary_layout.addWidget(self.malicious_label)
-        summary_layout.addWidget(self.benign_label)
         summary_layout.addStretch()
         summary_group.setLayout(summary_layout)
         layout.addWidget(summary_group)
@@ -1402,14 +1400,14 @@ class DashboardWindow(QMainWindow):
             analytics = self.api_client.get_alert_analytics()
             print(f"Analytics data received: {analytics}")
             
-            # Update summary stats
+            # Update summary stats (only malicious alerts)
             total = analytics.get('total_alerts', 0)
             malicious = analytics.get('malicious_count', 0)
-            benign = analytics.get('benign_count', 0)
             
             self.total_alerts_label.setText(f"Total Alerts: {total}")
             self.malicious_label.setText(f"Malicious: {malicious}")
-            self.benign_label.setText(f"Benign: {benign}")
+            # Remove benign label - system only shows malicious alerts
+            self.benign_label.hide()
             
             # Attack Type Distribution (Bar Chart)
             attack_types = analytics.get('attack_type_distribution', {})
@@ -1500,11 +1498,8 @@ class DashboardWindow(QMainWindow):
                 ax = self.time_series_chart.figure.add_subplot(111)
                 dates = [item['date'] for item in time_series]
                 totals = [item['count'] for item in time_series]
-                malicious = [item['malicious'] for item in time_series]
-                benign = [item['benign'] for item in time_series]
-                ax.plot(dates, totals, label='Total', color='#2563eb', linewidth=2.5, marker='o', markersize=4)
-                ax.plot(dates, malicious, label='Malicious', color='#ef4444', linewidth=2.5, marker='s', markersize=4)
-                ax.plot(dates, benign, label='Benign', color='#10b981', linewidth=2.5, marker='^', markersize=4)
+                # Only show total line - all alerts are malicious
+                ax.plot(dates, totals, label='Alerts', color='#ef4444', linewidth=2.5, marker='o', markersize=4)
                 ax.set_xlabel('Date', fontsize=11, fontweight='bold')
                 ax.set_ylabel('Alert Count', fontsize=11, fontweight='bold')
                 ax.set_title('Alerts Over Time', fontsize=12, fontweight='bold', pad=15)

@@ -64,10 +64,11 @@ def create_dummy_alerts():
             # More common: TCP SYN Flood, UDP Flood, TCP Flood
             attack_type_weights = [0.20, 0.15, 0.10, 0.15, 0.10, 0.10, 0.08, 0.05, 0.05, 0.02]
             attack_type = random.choices(attack_types, weights=attack_type_weights)[0]
-            score = round(random.uniform(0.3, 0.95), 4)
+            # Only create malicious alerts (score >= 0.5)
+            score = round(random.uniform(0.5, 0.95), 4)
             
-            # Determine if malicious based on score
-            is_malicious = score >= 0.5
+            # All alerts are malicious (system only processes malicious alerts)
+            is_malicious = True
             
             # Random status (weighted towards NEW and ACK)
             status_weights = [0.4, 0.3, 0.2, 0.1]  # NEW, ACK, BLOCKED, CLOSED

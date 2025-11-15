@@ -69,10 +69,11 @@ def create_analytics_dummy_data():
             
             # Weighted attack type selection for better distribution visualization
             attack_type = random.choices(attack_types, weights=attack_type_weights)[0]
-            score = round(random.uniform(0.3, 0.95), 4)
+            # Only create malicious alerts (score >= 0.5)
+            score = round(random.uniform(0.5, 0.95), 4)
             
-            # Determine if malicious based on score
-            is_malicious = score >= 0.5
+            # All alerts are malicious (system only processes malicious alerts)
+            is_malicious = True
             
             # Random status (weighted)
             status = random.choices(statuses, weights=status_weights)[0]
