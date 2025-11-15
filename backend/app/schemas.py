@@ -173,3 +173,13 @@ class AttackTrendData(AppBaseModel):
 class AttackTrendsResponse(AppBaseModel):
     trends: List[AttackTrendData]
 
+# Alert Analytics Schemas
+class AlertAnalyticsResponse(AppBaseModel):
+    attack_type_distribution: Dict[str, int]
+    status_distribution: Dict[str, int]
+    top_source_ips: List[Dict[str, Any]]
+    alerts_over_time: List[Dict[str, Any]]
+    total_alerts: int
+    malicious_count: int
+    benign_count: int
+

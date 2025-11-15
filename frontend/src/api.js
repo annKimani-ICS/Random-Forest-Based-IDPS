@@ -95,6 +95,9 @@ export const dashboardAPI = {
   getAttackTrends: (weeks = 8) =>
     api.get('/api/alerts/trends', { params: { weeks } }),
   
+  getAlertAnalytics: (params) =>
+    api.get('/api/alerts/analytics', { params }),
+  
   updateAlertStatus: (alertId, status) =>
     api.patch(`/api/alerts/${alertId}/status`, { status }),
   

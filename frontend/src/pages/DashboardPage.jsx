@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI } from '../api';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Shield, AlertTriangle, Ban, Activity, LogOut, Settings, Users, Menu, TrendingUp } from 'lucide-react';
 import './DashboardPage.css';
 
@@ -13,6 +13,7 @@ function DashboardPage() {
   const [metrics, setMetrics] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [trends, setTrends] = useState([]);
+  const [alertAnalytics, setAlertAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +38,7 @@ function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [kpisRes, metricsRes, alertsRes, trendsRes] = await Promise.all([
+      const [kpisRes, metricsRes, alertsRes, trendsRes, analyticsRes] = await Promise.all([
         dashboardAPI.getKPIs(),
         dashboardAPI.getMetrics(),
         dashboardAPI.getAlerts({
@@ -45,7 +46,8 @@ function DashboardPage() {
           page_size: 25,
           ...filters
         }),
-        dashboardAPI.getAttackTrends(8)
+        dashboardAPI.getAttackTrends(8),
+        dashboardAPI.getAlertAnalytics()
       ]);
 
       setKpis(kpisRes.data);
@@ -53,6 +55,7 @@ function DashboardPage() {
       setAlerts(alertsRes.data.alerts);
       setTotalAlerts(alertsRes.data.total);
       setTrends(trendsRes.data.trends);
+      setAlertAnalytics(analyticsRes.data);
       setError('');
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -279,11 +282,116 @@ function DashboardPage() {
           </div>
         )}
 
+        {/* Alert Analytics */}
+        {alertAnalytics && (
+          <div className="analytics-section">
+            <div className="section-header">
+              <h2>Alert Analytics</h2>
+            </div>
+            
+            <div className="analytics-grid">
+              {/* Attack Type Distribution */}
+              <div className="analytics-card">
+                <h3>Attack Type Distribution</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={Object.entries(alertAnalytics.attack_type_distribution).map(([name, value]) => ({ name, value }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#2563eb" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Status Distribution */}
+              <div className="analytics-card">
+                <h3>Status Distribution</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(alertAnalytics.status_distribution).map(([name, value]) => ({ name, value }))}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {Object.entries(alertAnalytics.status_distribution).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={['#ef4444', '#10b981', '#f59e0b', '#6366f1'][index % 4]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Top Source IPs */}
+              <div className="analytics-card">
+                <h3>Top Source IPs</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={alertAnalytics.top_source_ips} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="ip" type="category" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Alerts Over Time */}
+              <div className="analytics-card" style={{ gridColumn: '1 / -1' }}>
+                <h3>Alerts Over Time</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={alertAnalytics.alerts_over_time}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="count" name="Total" stroke="#2563eb" strokeWidth={2} />
+                    <Line type="monotone" dataKey="malicious" name="Malicious" stroke="#ef4444" strokeWidth={2} />
+                    <Line type="monotone" dataKey="benign" name="Benign" stroke="#10b981" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="analytics-summary">
+              <div className="summary-item">
+                <span className="summary-label">Total Alerts:</span>
+                <span className="summary-value">{alertAnalytics.total_alerts}</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">Malicious:</span>
+                <span className="summary-value" style={{ color: '#ef4444' }}>{alertAnalytics.malicious_count}</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">Benign:</span>
+                <span className="summary-value" style={{ color: '#10b981' }}>{alertAnalytics.benign_count}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Alerts Table */}
         <div className="alerts-section">
           <div className="section-header">
             <h2>Recent Alerts</h2>
             <div className="filters">
+              <select
+                value={filters.attack_type}
+                onChange={(e) => setFilters({ ...filters, attack_type: e.target.value })}
+              >
+                <option value="">All Attack Types</option>
+                {alertAnalytics && Object.keys(alertAnalytics.attack_type_distribution).map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
               <select
                 value={filters.malicious}
                 onChange={(e) => setFilters({ ...filters, malicious: e.target.value })}

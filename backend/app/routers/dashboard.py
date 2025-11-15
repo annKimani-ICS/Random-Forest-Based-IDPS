@@ -12,7 +12,8 @@ from app.models import User, Alert, Model, Threshold, BlockRule, AuditLog, UserR
 from app.schemas import (
     KPIResponse, MetricsResponse, AlertResponse, AlertListResponse,
     ThresholdResponse, ThresholdUpdate, BlockRuleCreate, BlockRuleResponse,
-    AlertUpdateStatus, AuditLogResponse, AttackTrendsResponse, AttackTrendData
+    AlertUpdateStatus, AuditLogResponse, AttackTrendsResponse, AttackTrendData,
+    AlertAnalyticsResponse
 )
 from app.auth import get_current_user, require_role
 
@@ -255,6 +256,79 @@ async def get_attack_trends(
         current += timedelta(weeks=1)
     
     return AttackTrendsResponse(trends=trends)
+
+@router.get("/alerts/analytics", response_model=AlertAnalyticsResponse)
+async def get_alert_analytics(
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get alert analytics including attack type distribution, status distribution, top IPs, and time series"""
+    from collections import defaultdict
+    
+    # Default to last 7 days
+    if from_date is None and to_date is None:
+        from_date = datetime.utcnow() - timedelta(days=7)
+    
+    query = db.query(Alert)
+    if from_date:
+        query = query.filter(Alert.event_ts >= from_date)
+    if to_date:
+        query = query.filter(Alert.event_ts <= to_date)
+    
+    alerts = query.all()
+    
+    # Attack type distribution
+    attack_type_dist = defaultdict(int)
+    for alert in alerts:
+        attack_type_dist[alert.attack_type] += 1
+    
+    # Status distribution
+    status_dist = defaultdict(int)
+    for alert in alerts:
+        status_dist[alert.status.value if hasattr(alert.status, 'value') else str(alert.status)] += 1
+    
+    # Top source IPs (top 10)
+    src_ip_counts = defaultdict(int)
+    for alert in alerts:
+        src_ip_counts[str(alert.src_ip)] += 1
+    
+    top_source_ips = [
+        {"ip": ip, "count": count}
+        for ip, count in sorted(src_ip_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    ]
+    
+    # Alerts over time (by day)
+    daily_counts = defaultdict(lambda: {"date": "", "count": 0, "malicious": 0, "benign": 0})
+    for alert in alerts:
+        date_key = alert.event_ts.date().isoformat()
+        daily_counts[date_key]["date"] = date_key
+        daily_counts[date_key]["count"] += 1
+        if alert.is_malicious:
+            daily_counts[date_key]["malicious"] += 1
+        else:
+            daily_counts[date_key]["benign"] += 1
+    
+    alerts_over_time = sorted(
+        [{"date": v["date"], "count": v["count"], "malicious": v["malicious"], "benign": v["benign"]} 
+         for v in daily_counts.values()],
+        key=lambda x: x["date"]
+    )
+    
+    # Total counts
+    malicious_count = sum(1 for alert in alerts if alert.is_malicious)
+    benign_count = len(alerts) - malicious_count
+    
+    return AlertAnalyticsResponse(
+        attack_type_distribution=dict(attack_type_dist),
+        status_distribution=dict(status_dist),
+        top_source_ips=top_source_ips,
+        alerts_over_time=alerts_over_time,
+        total_alerts=len(alerts),
+        malicious_count=malicious_count,
+        benign_count=benign_count
+    )
 
 @router.patch("/alerts/{alert_id}/status")
 async def update_alert_status(
