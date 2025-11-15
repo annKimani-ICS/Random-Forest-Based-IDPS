@@ -1405,11 +1405,13 @@ class DashboardWindow(QMainWindow):
         """Load and display analytics charts"""
         try:
             analytics = self.api_client.get_alert_analytics()
-            print(f"Analytics data received: {analytics}")
+            print(f"[ANALYTICS] Full response: {analytics}")
             
             # Update summary stats (only malicious alerts)
             total = analytics.get('total_alerts', 0)
             malicious = analytics.get('malicious_count', 0)
+            
+            print(f"[ANALYTICS] Total alerts: {total}, Malicious: {malicious}")
             
             self.total_alerts_label.setText(f"Total Alerts: {total}")
             self.malicious_label.setText(f"Malicious: {malicious}")
@@ -1417,7 +1419,7 @@ class DashboardWindow(QMainWindow):
             
             # If no alerts, show empty state instead of error
             if total == 0:
-                print("No alerts in database - showing empty state")
+                print("[ANALYTICS] No alerts in database - showing empty state")
                 # Clear all charts by clearing figures
                 self.attack_type_chart.figure.clear()
                 self.status_chart.figure.clear()
@@ -1429,10 +1431,13 @@ class DashboardWindow(QMainWindow):
                 self.time_series_chart.draw()
                 return
             
+            print(f"[ANALYTICS] Processing {total} alerts for charts...")
+            
             # Attack Type Distribution (Bar Chart)
             attack_types = analytics.get('attack_type_distribution', {})
-            print(f"Attack types: {attack_types}")
+            print(f"[ANALYTICS] Attack types distribution: {attack_types} (type: {type(attack_types)})")
             if attack_types and len(attack_types) > 0:
+                print(f"[ANALYTICS] Rendering attack type chart with {len(attack_types)} types")
                 self.attack_type_chart.figure.clear()
                 ax = self.attack_type_chart.figure.add_subplot(111)
                 # Sort by count descending
@@ -1455,13 +1460,21 @@ class DashboardWindow(QMainWindow):
                            f'{count}', ha='center', va='bottom', fontsize=9, fontweight='bold')
                 self.attack_type_chart.figure.tight_layout()
                 self.attack_type_chart.draw()
+                print(f"[ANALYTICS] Attack type chart rendered successfully")
             else:
-                print("No attack type data available")
+                print(f"[ANALYTICS] No attack type data available (got: {attack_types})")
+                # Draw empty chart
+                self.attack_type_chart.figure.clear()
+                ax = self.attack_type_chart.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 'No attack type data', ha='center', va='center', transform=ax.transAxes)
+                ax.set_title('Attack Type Distribution', fontsize=12, fontweight='bold')
+                self.attack_type_chart.draw()
             
             # Status Distribution (Pie Chart)
             statuses = analytics.get('status_distribution', {})
-            print(f"Statuses: {statuses}")
+            print(f"[ANALYTICS] Status distribution: {statuses} (type: {type(statuses)})")
             if statuses and len(statuses) > 0:
+                print(f"[ANALYTICS] Rendering status chart with {len(statuses)} statuses")
                 self.status_chart.figure.clear()
                 ax = self.status_chart.figure.add_subplot(111)
                 labels = list(statuses.keys())
@@ -1482,13 +1495,21 @@ class DashboardWindow(QMainWindow):
                     ax.set_title('Status Distribution', fontsize=12, fontweight='bold', pad=15)
                     self.status_chart.figure.tight_layout()
                     self.status_chart.draw()
+                    print(f"[ANALYTICS] Status chart rendered successfully")
             else:
-                print("No status data available")
+                print(f"[ANALYTICS] No status data available (got: {statuses})")
+                # Draw empty chart
+                self.status_chart.figure.clear()
+                ax = self.status_chart.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 'No status data', ha='center', va='center', transform=ax.transAxes)
+                ax.set_title('Status Distribution', fontsize=12, fontweight='bold')
+                self.status_chart.draw()
             
             # Top Source IPs (Horizontal Bar Chart)
             top_ips = analytics.get('top_source_ips', [])
-            print(f"Top IPs: {top_ips}")
+            print(f"[ANALYTICS] Top IPs: {top_ips} (type: {type(top_ips)}, length: {len(top_ips) if top_ips else 0})")
             if top_ips and len(top_ips) > 0:
+                print(f"[ANALYTICS] Rendering top IPs chart with {len(top_ips)} IPs")
                 self.top_ips_chart.figure.clear()
                 ax = self.top_ips_chart.figure.add_subplot(111)
                 # Take top 10
@@ -1507,13 +1528,21 @@ class DashboardWindow(QMainWindow):
                            f' {count}', ha='left', va='center', fontsize=9, fontweight='bold')
                 self.top_ips_chart.figure.tight_layout()
                 self.top_ips_chart.draw()
+                print(f"[ANALYTICS] Top IPs chart rendered successfully")
             else:
-                print("No top IPs data available")
+                print(f"[ANALYTICS] No top IPs data available (got: {top_ips})")
+                # Draw empty chart
+                self.top_ips_chart.figure.clear()
+                ax = self.top_ips_chart.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 'No IP data', ha='center', va='center', transform=ax.transAxes)
+                ax.set_title('Top Source IPs', fontsize=12, fontweight='bold')
+                self.top_ips_chart.draw()
             
             # Alerts Over Time (Line Chart)
             time_series = analytics.get('alerts_over_time', [])
-            print(f"Time series: {time_series}")
+            print(f"[ANALYTICS] Time series: {time_series} (type: {type(time_series)}, length: {len(time_series) if time_series else 0})")
             if time_series and len(time_series) > 0:
+                print(f"[ANALYTICS] Rendering time series chart with {len(time_series)} data points")
                 self.time_series_chart.figure.clear()
                 ax = self.time_series_chart.figure.add_subplot(111)
                 dates = [item['date'] for item in time_series]
@@ -1532,8 +1561,17 @@ class DashboardWindow(QMainWindow):
                 # Adjust bottom margin to prevent label cutoff
                 self.time_series_chart.figure.subplots_adjust(bottom=0.25)
                 self.time_series_chart.draw()
+                print(f"[ANALYTICS] Time series chart rendered successfully")
             else:
-                print("No time series data available")
+                print(f"[ANALYTICS] No time series data available (got: {time_series})")
+                # Draw empty chart
+                self.time_series_chart.figure.clear()
+                ax = self.time_series_chart.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 'No time series data', ha='center', va='center', transform=ax.transAxes)
+                ax.set_title('Alerts Over Time', fontsize=12, fontweight='bold')
+                self.time_series_chart.draw()
+            
+            print(f"[ANALYTICS] All charts processed. Summary: Total={total}, AttackTypes={len(attack_types) if attack_types else 0}, Statuses={len(statuses) if statuses else 0}, TopIPs={len(top_ips) if top_ips else 0}, TimeSeries={len(time_series) if time_series else 0}")
                 
         except Exception as e:
             print(f"Error loading analytics: {e}")
