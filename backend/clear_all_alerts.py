@@ -5,7 +5,7 @@ Run this to start fresh - only malicious alerts will be created when you simulat
 import sys
 import os
 
-# Add current directory to path (same as other working scripts)
+# Add current directory to path (same as seed_data.py and other working scripts)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
@@ -13,8 +13,12 @@ try:
     from app.models import Alert
 except ImportError as e:
     print(f"❌ Import error: {e}")
-    print("💡 Make sure you're running this from the backend directory")
-    print("   and that dependencies are installed")
+    print("💡 This means the virtual environment is not activated or dependencies are missing")
+    print("")
+    print("   Try one of these:")
+    print("   1. Activate venv: source .venv/bin/activate")
+    print("   2. Or use venv python directly: .venv/bin/python3 clear_all_alerts.py")
+    print("   3. Or find your venv: find ~ -name 'uvicorn' -type f 2>/dev/null")
     sys.exit(1)
 
 def clear_all_alerts():
