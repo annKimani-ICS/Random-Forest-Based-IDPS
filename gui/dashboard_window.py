@@ -665,16 +665,16 @@ class DashboardWindow(QMainWindow):
         top_ips_group.setLayout(top_ips_layout)
         charts_layout.addWidget(top_ips_group, 1, 0)
         
-        # Alerts Over Time Chart - Bottom Right (full width, larger)
+        # Alerts Over Time Chart - Bottom (full width, larger)
         time_series_group = QGroupBox("Alerts Over Time")
         time_series_group.setStyleSheet(chart_style)
         time_series_layout = QVBoxLayout()
         time_series_layout.setContentsMargins(5, 5, 5, 5)
-        self.time_series_chart = FigureCanvas(Figure(figsize=(16, 5)))
-        self.time_series_chart.setMinimumHeight(400)
+        self.time_series_chart = FigureCanvas(Figure(figsize=(18, 6)))
+        self.time_series_chart.setMinimumHeight(500)
         time_series_layout.addWidget(self.time_series_chart)
         time_series_group.setLayout(time_series_layout)
-        charts_layout.addWidget(time_series_group, 1, 1)
+        charts_layout.addWidget(time_series_group, 2, 0, 1, 2)  # Span both columns, row 2
         
         layout.addLayout(charts_layout)
         layout.addStretch()
