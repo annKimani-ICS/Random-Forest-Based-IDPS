@@ -1406,8 +1406,7 @@ class DashboardWindow(QMainWindow):
             
             self.total_alerts_label.setText(f"Total Alerts: {total}")
             self.malicious_label.setText(f"Malicious: {malicious}")
-            # Remove benign label - system only shows malicious alerts
-            self.benign_label.hide()
+            # Benign label removed - system only shows malicious alerts
             
             # Attack Type Distribution (Bar Chart)
             attack_types = analytics.get('attack_type_distribution', {})
