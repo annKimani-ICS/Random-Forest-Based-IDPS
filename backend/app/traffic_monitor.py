@@ -373,12 +373,18 @@ class TrafficMonitor:
         udp_ratio = udp_count / total_packets
         icmp_ratio = icmp_count / total_packets
         
+        # Get destination ports (handle both set and list)
+        dst_ports = stats.get('dst_ports', set())
+        if isinstance(dst_ports, (list, tuple)):
+            dst_ports = set(dst_ports)
+        dst_port_count = len(dst_ports) if dst_ports else 0
+        
         # Identify attack type based on protocol dominance and characteristics
         if tcp_ratio > 0.7:
             # TCP-based DDoS attacks
             if packets_per_sec > 1000:
                 return "DDoS TCP Flood"
-            elif len(stats.get('dst_ports', set())) == 1 and packets_per_sec > 500:
+            elif dst_port_count == 1 and packets_per_sec > 500:
                 return "DDoS TCP SYN Flood"
             else:
                 return "DDoS TCP"
@@ -386,7 +392,7 @@ class TrafficMonitor:
             # UDP-based DDoS attacks
             if packets_per_sec > 2000:
                 return "DDoS UDP Flood"
-            elif len(stats.get('dst_ports', set())) > 100:
+            elif dst_port_count > 100:
                 return "DDoS UDP Reflection"
             else:
                 return "DDoS UDP"

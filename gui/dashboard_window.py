@@ -1205,19 +1205,26 @@ class DashboardWindow(QMainWindow):
             if not alerts:
                 # Show message if no alerts
                 self.preview_table.setRowCount(1)
-                self.preview_table.setItem(0, 0, QTableWidgetItem("No alerts available"))
-                self.preview_table.setItem(0, 0, QTableWidgetItem(""))
-                self.preview_table.setItem(0, 1, QTableWidgetItem(""))
-                self.preview_table.setItem(0, 2, QTableWidgetItem(""))
-                self.preview_table.setItem(0, 3, QTableWidgetItem(""))
-                self.preview_table.setItem(0, 4, QTableWidgetItem(""))
-                self.preview_table.setItem(0, 5, QTableWidgetItem(""))
+                self.preview_table.setColumnCount(6)
+                # Clear any existing spans
+                for row in range(self.preview_table.rowCount()):
+                    for col in range(self.preview_table.columnCount()):
+                        item = self.preview_table.item(row, col)
+                        if item:
+                            self.preview_table.setItem(row, col, None)
                 # Merge cells for message
                 self.preview_table.setSpan(0, 0, 1, 6)
                 msg_item = QTableWidgetItem("No recent alerts found")
                 msg_item.setTextAlignment(Qt.AlignCenter)
                 self.preview_table.setItem(0, 0, msg_item)
                 return
+            
+            # Clear any existing spans
+            for row in range(self.preview_table.rowCount()):
+                for col in range(self.preview_table.columnCount()):
+                    span = self.preview_table.item(row, col)
+                    if span:
+                        self.preview_table.setSpan(row, col, 1, 1)
             
             self.preview_table.setRowCount(len(alerts))
             
@@ -1245,6 +1252,11 @@ class DashboardWindow(QMainWindow):
             
             # Resize columns to fit content
             self.preview_table.resizeColumnsToContents()
+        
+        except Exception as e:
+            print(f"Error loading alerts preview: {e}")
+            import traceback
+            traceback.print_exc()
         
         except Exception as e:
             print(f"Error loading alerts preview: {e}")
@@ -1570,7 +1582,7 @@ class DashboardWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to acknowledge alert: {str(e)}")
     
     def block_ip(self, src_ip):
-        """Block an IP address"""
+        """Block an IP address and update related alerts"""
         dialog = BlockIPDialog(src_ip, self)
         if dialog.exec_() == QDialog.Accepted:
             reason = dialog.get_reason()
@@ -1579,9 +1591,25 @@ class DashboardWindow(QMainWindow):
                 return
             
             try:
+                # Create block rule
                 self.api_client.create_block(src_ip, reason)
+                
+                # Update all alerts from this IP to BLOCKED status
+                try:
+                    alerts = self.api_client.get_alerts(page=1, page_size=1000, src_ip=src_ip)
+                    for alert in alerts.get("alerts", []):
+                        if alert.get("status") != "BLOCKED":
+                            try:
+                                self.api_client.update_alert_status(alert["id"], "BLOCKED")
+                            except:
+                                pass  # Continue even if one fails
+                except:
+                    pass  # Continue even if alert update fails
+                
                 QMessageBox.information(self, "Success", f"IP {src_ip} has been blocked")
-                self.load_data()
+                self.load_alerts()  # Refresh alerts table
+                self.load_alerts_preview()  # Refresh preview
+                self.load_data()  # Refresh other data
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to block IP: {str(e)}")
     
