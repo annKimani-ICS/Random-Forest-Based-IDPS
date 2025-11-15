@@ -1,5 +1,5 @@
 #!/bin/bash
-# Quick script to add analytics dummy data
+# Quick script to add dummy data (only malicious alerts)
 # This script ensures the virtual environment is activated before running
 
 cd "$(dirname "$0")"
@@ -24,10 +24,10 @@ if ! python3 -c "import sqlalchemy" 2>/dev/null; then
     echo "✅ Dependencies installed"
 fi
 
-# Run the script
-echo "🚀 Running analytics dummy data script..."
-python3 add_analytics_dummy_data.py
+# Run the script (only creates malicious alerts)
+echo "🚀 Running dummy data script (malicious alerts only)..."
+python3 populate_dummy_data.py
 
 echo ""
-echo "✅ Done! Refresh your dashboard to see the analytics charts."
+echo "✅ Done! All dummy alerts are malicious. Refresh your dashboard to see the analytics charts."
 
