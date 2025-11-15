@@ -10,14 +10,47 @@ echo "🔍 Searching for virtual environment..."
 # Method 1: Check running uvicorn process to find actual Python being used
 PYTHON_CMD=""
 if pgrep -f "uvicorn.*app.main:app" > /dev/null; then
-    # Get the command line of the running uvicorn process
-    UVICORN_CMD=$(ps aux | grep "[u]vicorn.*app.main:app" | head -1 | awk '{for(i=11;i<=NF;i++) printf "%s ", $i; print ""}')
-    # Extract the path - uvicorn is usually at /path/to/venv/bin/uvicorn
-    if echo "$UVICORN_CMD" | grep -q "/bin/uvicorn"; then
-        UVICORN_PATH=$(echo "$UVICORN_CMD" | sed 's|/bin/uvicorn.*||' | awk '{print $1}' | sed 's|/uvicorn$||')
-        if [ -n "$UVICORN_PATH" ] && [ -f "$UVICORN_PATH/bin/python3" ]; then
-            PYTHON_CMD="$UVICORN_PATH/bin/python3"
-            echo "✅ Found Python from running backend process: $PYTHON_CMD"
+    # Get the PID of the uvicorn process
+    UVICORN_PID=$(pgrep -f "uvicorn.*app.main:app" | head -1)
+    
+    if [ -n "$UVICORN_PID" ]; then
+        # Method 1a: Get the actual Python executable from the process
+        if [ -f "/proc/$UVICORN_PID/exe" ]; then
+            PYTHON_EXE=$(readlink -f "/proc/$UVICORN_PID/exe" 2>/dev/null)
+            if [ -n "$PYTHON_EXE" ] && [ -f "$PYTHON_EXE" ]; then
+                PYTHON_CMD="$PYTHON_EXE"
+                echo "✅ Found Python from running backend process (PID $UVICORN_PID): $PYTHON_CMD"
+            fi
+        fi
+        
+        # Method 1b: If that didn't work, get the uvicorn path and derive venv
+        if [ -z "$PYTHON_CMD" ]; then
+            # Get the full command line
+            UVICORN_CMD=$(cat "/proc/$UVICORN_PID/cmdline" 2>/dev/null | tr '\0' ' ')
+            # Extract uvicorn path (first argument after PID)
+            UVICORN_BIN=$(echo "$UVICORN_CMD" | awk '{print $1}')
+            if [ -n "$UVICORN_BIN" ] && [ -f "$UVICORN_BIN" ]; then
+                # uvicorn is at /path/to/venv/bin/uvicorn, so venv is parent of bin
+                VENV_DIR=$(dirname "$(dirname "$UVICORN_BIN")")
+                if [ -f "$VENV_DIR/bin/python3" ]; then
+                    PYTHON_CMD="$VENV_DIR/bin/python3"
+                    echo "✅ Found Python from uvicorn path: $PYTHON_CMD"
+                fi
+            fi
+        fi
+        
+        # Method 1c: Get working directory and check for venv there
+        if [ -z "$PYTHON_CMD" ]; then
+            WORK_DIR=$(readlink -f "/proc/$UVICORN_PID/cwd" 2>/dev/null)
+            if [ -n "$WORK_DIR" ]; then
+                for VENV_NAME in ".venv" "venv" "env"; do
+                    if [ -f "$WORK_DIR/$VENV_NAME/bin/python3" ]; then
+                        PYTHON_CMD="$WORK_DIR/$VENV_NAME/bin/python3"
+                        echo "✅ Found Python from process working directory: $PYTHON_CMD"
+                        break
+                    fi
+                done
+            fi
         fi
     fi
 fi
