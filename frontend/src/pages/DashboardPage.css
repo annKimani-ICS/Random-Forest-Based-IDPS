@@ -4,13 +4,13 @@
 }
 
 .dashboard-header {
-  background: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
 }
 
 .header-left {
@@ -22,14 +22,18 @@
 .header-left h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: white;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .header-subtitle {
   font-size: 0.875rem;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .header-right {
@@ -40,26 +44,29 @@
 
 .user-badge {
   padding: 0.5rem 1rem;
-  background: #f1f5f9;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #475569;
+  color: white;
   font-weight: 500;
+  backdrop-filter: blur(10px);
 }
 
 .icon-btn {
   padding: 0.5rem;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   cursor: pointer;
   border-radius: 8px;
-  color: #64748b;
+  color: white;
   transition: all 0.2s;
+  backdrop-filter: blur(10px);
 }
 
 .icon-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  transform: translateY(-1px);
 }
 
 .dashboard-content {
@@ -334,31 +341,46 @@
 
 .analytics-section {
   background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
   margin-bottom: 2rem;
+  border: 1px solid #e2e8f0;
 }
 
 .analytics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
+@media (max-width: 1200px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .analytics-card {
-  background: #f8fafc;
-  padding: 1.25rem;
-  border-radius: 8px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.analytics-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
 }
 
 .analytics-card h3 {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 1rem 0;
+  margin: 0 0 1.25rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .analytics-summary {
@@ -385,5 +407,35 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: #1e293b;
+}
+
+/* Enhanced header styling */
+.header-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Professional chart container styling */
+.analytics-card .recharts-wrapper {
+  background: transparent;
+}
+
+.analytics-card .recharts-surface {
+  overflow: visible;
+}
+
+/* Empty state styling */
+.analytics-card p {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin: 0;
 }
 
