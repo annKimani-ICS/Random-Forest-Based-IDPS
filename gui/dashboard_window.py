@@ -1212,7 +1212,7 @@ class DashboardWindow(QMainWindow):
                     "Authentication Error", 
                     "Your session has expired. Please log in again."
                 )
-                self.logout()
+                self.logout(skip_confirmation=True)
             else:
                 QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
     
@@ -2050,7 +2050,7 @@ class DashboardWindow(QMainWindow):
                         "Session Expired", 
                         "Your session has expired. Please log in again."
                     )
-                    self.logout()
+                    self.logout(skip_confirmation=True)
                     return
                 else:
                     raise
@@ -2060,20 +2060,23 @@ class DashboardWindow(QMainWindow):
         except:
             pass
     
-    def logout(self):
+    def logout(self, skip_confirmation=False):
         """Logout user"""
-        reply = QMessageBox.question(
-            self, "Confirm Logout",
-            "Are you sure you want to logout?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            self.api_client.logout()
-            self.close()
+        if not skip_confirmation:
+            reply = QMessageBox.question(
+                self, "Confirm Logout",
+                "Are you sure you want to logout?",
+                QMessageBox.Yes | QMessageBox.No
+            )
             
-            # Show login window again
-            from login_window import LoginWindow
-            self.login_window = LoginWindow()
-            self.login_window.show()
+            if reply != QMessageBox.Yes:
+                return
+        
+        self.api_client.logout()
+        self.close()
+        
+        # Show login window again
+        from login_window import LoginWindow
+        self.login_window = LoginWindow()
+        self.login_window.show()
 
