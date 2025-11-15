@@ -294,6 +294,19 @@ async def get_alert_analytics(
     for alert in alerts:
         attack_type_dist[alert.attack_type] += 1
     
+    # Alert score distribution (severity ranges)
+    score_distribution = defaultdict(int)
+    for alert in alerts:
+        score = float(alert.score)
+        if score >= 0.9:
+            score_distribution["High (0.9-1.0)"] += 1
+        elif score >= 0.7:
+            score_distribution["Medium (0.7-0.9)"] += 1
+        elif score >= 0.5:
+            score_distribution["Low (0.5-0.7)"] += 1
+        else:
+            score_distribution["Very Low (<0.5)"] += 1
+    
     # Status distribution
     status_dist = defaultdict(int)
     for alert in alerts:
@@ -327,6 +340,7 @@ async def get_alert_analytics(
     
     return AlertAnalyticsResponse(
         attack_type_distribution=dict(attack_type_dist),
+        score_distribution=dict(score_distribution),
         status_distribution=dict(status_dist),
         top_source_ips=top_source_ips,
         alerts_over_time=alerts_over_time,

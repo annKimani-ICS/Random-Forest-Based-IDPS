@@ -663,16 +663,16 @@ class DashboardWindow(QMainWindow):
             }
         """
         
-        # Attack Type Distribution Chart - Top Left (larger)
-        attack_type_group = QGroupBox("Attack Type Distribution")
-        attack_type_group.setStyleSheet(chart_style)
-        attack_type_layout = QVBoxLayout()
-        attack_type_layout.setContentsMargins(5, 5, 5, 5)
-        self.attack_type_chart = FigureCanvas(Figure(figsize=(7, 4.5)))
-        self.attack_type_chart.setMinimumHeight(350)
-        attack_type_layout.addWidget(self.attack_type_chart)
-        attack_type_group.setLayout(attack_type_layout)
-        charts_layout.addWidget(attack_type_group, 0, 0)
+        # Alert Score Distribution Chart - Top Left (replaces Attack Type)
+        score_dist_group = QGroupBox("Alert Score Distribution")
+        score_dist_group.setStyleSheet(chart_style)
+        score_dist_layout = QVBoxLayout()
+        score_dist_layout.setContentsMargins(5, 5, 5, 5)
+        self.score_dist_chart = FigureCanvas(Figure(figsize=(7, 4.5)))
+        self.score_dist_chart.setMinimumHeight(350)
+        score_dist_layout.addWidget(self.score_dist_chart)
+        score_dist_group.setLayout(score_dist_layout)
+        charts_layout.addWidget(score_dist_group, 0, 0)
         
         # Status Distribution Chart - Top Right (larger)
         status_group = QGroupBox("Status Distribution")
@@ -1424,11 +1424,11 @@ class DashboardWindow(QMainWindow):
             if total == 0:
                 print("[ANALYTICS] No alerts in database - showing empty state")
                 # Clear all charts by clearing figures
-                self.attack_type_chart.figure.clear()
+                self.score_dist_chart.figure.clear()
                 self.status_chart.figure.clear()
                 self.top_ips_chart.figure.clear()
                 self.time_series_chart.figure.clear()
-                self.attack_type_chart.draw()
+                self.score_dist_chart.draw()
                 self.status_chart.draw()
                 self.top_ips_chart.draw()
                 self.time_series_chart.draw()
@@ -1436,42 +1436,45 @@ class DashboardWindow(QMainWindow):
             
             print(f"[ANALYTICS] Processing {total} alerts for charts...")
             
-            # Attack Type Distribution (Bar Chart)
-            attack_types = analytics.get('attack_type_distribution', {})
-            print(f"[ANALYTICS] Attack types distribution: {attack_types} (type: {type(attack_types)})")
-            if attack_types and len(attack_types) > 0:
-                print(f"[ANALYTICS] Rendering attack type chart with {len(attack_types)} types")
-                self.attack_type_chart.figure.clear()
-                ax = self.attack_type_chart.figure.add_subplot(111)
-                # Sort by count descending
-                sorted_types = sorted(attack_types.items(), key=lambda x: x[1], reverse=True)
-                types = [t[0] for t in sorted_types]
-                counts = [t[1] for t in sorted_types]
-                bars = ax.bar(range(len(types)), counts, color='#2563eb', edgecolor='#1e40af', linewidth=1.5)
-                ax.set_xlabel('Attack Type', fontsize=11, fontweight='bold')
-                ax.set_ylabel('Count', fontsize=11, fontweight='bold')
-                ax.set_title('Attack Type Distribution', fontsize=12, fontweight='bold', pad=15)
-                ax.set_xticks(range(len(types)))
-                ax.set_xticklabels(types, rotation=45, ha='right', fontsize=9)
+            # Alert Score Distribution (Bar Chart) - Replaces Attack Type
+            score_dist = analytics.get('score_distribution', {})
+            print(f"[ANALYTICS] Score distribution: {score_dist} (type: {type(score_dist)})")
+            if score_dist and len(score_dist) > 0:
+                print(f"[ANALYTICS] Rendering score distribution chart with {len(score_dist)} ranges")
+                self.score_dist_chart.figure.clear()
+                ax = self.score_dist_chart.figure.add_subplot(111)
+                # Sort by severity: High, Medium, Low, Very Low
+                severity_order = ["High (0.9-1.0)", "Medium (0.7-0.9)", "Low (0.5-0.7)", "Very Low (<0.5)"]
+                sorted_scores = sorted(score_dist.items(), key=lambda x: severity_order.index(x[0]) if x[0] in severity_order else 999)
+                ranges = [s[0] for s in sorted_scores]
+                counts = [s[1] for s in sorted_scores]
+                # Color gradient: red for high, orange for medium, yellow for low
+                colors = ['#ef4444', '#f59e0b', '#eab308', '#84cc16']
+                bars = ax.bar(range(len(ranges)), counts, color=colors[:len(ranges)], edgecolor='#1e293b', linewidth=1.5)
+                ax.set_xlabel('Severity Range', fontsize=11, fontweight='bold')
+                ax.set_ylabel('Alert Count', fontsize=11, fontweight='bold')
+                ax.set_title('Alert Score Distribution', fontsize=12, fontweight='bold', pad=15)
+                ax.set_xticks(range(len(ranges)))
+                ax.set_xticklabels(ranges, rotation=45, ha='right', fontsize=9)
                 ax.grid(axis='y', alpha=0.3, linestyle='--')
                 # Adjust bottom margin to prevent label cutoff
-                self.attack_type_chart.figure.subplots_adjust(bottom=0.25)
+                self.score_dist_chart.figure.subplots_adjust(bottom=0.25)
                 # Add value labels on bars
                 for i, (bar, count) in enumerate(zip(bars, counts)):
                     height = bar.get_height()
                     ax.text(bar.get_x() + bar.get_width()/2., height,
                            f'{count}', ha='center', va='bottom', fontsize=9, fontweight='bold')
-                self.attack_type_chart.figure.tight_layout()
-                self.attack_type_chart.draw()
-                print(f"[ANALYTICS] Attack type chart rendered successfully")
+                self.score_dist_chart.figure.tight_layout()
+                self.score_dist_chart.draw()
+                print(f"[ANALYTICS] Score distribution chart rendered successfully")
             else:
-                print(f"[ANALYTICS] No attack type data available (got: {attack_types})")
+                print(f"[ANALYTICS] No score distribution data available (got: {score_dist})")
                 # Draw empty chart
-                self.attack_type_chart.figure.clear()
-                ax = self.attack_type_chart.figure.add_subplot(111)
-                ax.text(0.5, 0.5, 'No attack type data', ha='center', va='center', transform=ax.transAxes)
-                ax.set_title('Attack Type Distribution', fontsize=12, fontweight='bold')
-                self.attack_type_chart.draw()
+                self.score_dist_chart.figure.clear()
+                ax = self.score_dist_chart.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 'No score data', ha='center', va='center', transform=ax.transAxes)
+                ax.set_title('Alert Score Distribution', fontsize=12, fontweight='bold')
+                self.score_dist_chart.draw()
             
             # Status Distribution (Pie Chart)
             statuses = analytics.get('status_distribution', {})
@@ -1574,7 +1577,7 @@ class DashboardWindow(QMainWindow):
                 ax.set_title('Alerts Over Time', fontsize=12, fontweight='bold')
                 self.time_series_chart.draw()
             
-            print(f"[ANALYTICS] All charts processed. Summary: Total={total}, AttackTypes={len(attack_types) if attack_types else 0}, Statuses={len(statuses) if statuses else 0}, TopIPs={len(top_ips) if top_ips else 0}, TimeSeries={len(time_series) if time_series else 0}")
+            print(f"[ANALYTICS] All charts processed. Summary: Total={total}, ScoreDist={len(score_dist) if score_dist else 0}, Statuses={len(statuses) if statuses else 0}, TopIPs={len(top_ips) if top_ips else 0}, TimeSeries={len(time_series) if time_series else 0}")
                 
         except Exception as e:
             print(f"Error loading analytics: {e}")
@@ -1588,11 +1591,11 @@ class DashboardWindow(QMainWindow):
                 print("Analytics endpoint not found - showing empty state")
                 # Clear charts by clearing figure
                 try:
-                    self.attack_type_chart.figure.clear()
+                    self.score_dist_chart.figure.clear()
                     self.status_chart.figure.clear()
                     self.top_ips_chart.figure.clear()
                     self.time_series_chart.figure.clear()
-                    self.attack_type_chart.draw()
+                    self.score_dist_chart.draw()
                     self.status_chart.draw()
                     self.top_ips_chart.draw()
                     self.time_series_chart.draw()

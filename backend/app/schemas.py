@@ -176,6 +176,7 @@ class AttackTrendsResponse(AppBaseModel):
 # Alert Analytics Schemas
 class AlertAnalyticsResponse(AppBaseModel):
     attack_type_distribution: Dict[str, int]
+    score_distribution: Dict[str, int]  # New: Alert score/severity distribution
     status_distribution: Dict[str, int]
     top_source_ips: List[Dict[str, Any]]
     alerts_over_time: List[Dict[str, Any]]
