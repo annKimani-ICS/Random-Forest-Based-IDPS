@@ -1,5 +1,5 @@
 #!/bin/bash
-# Quick script to add dummy data (only malicious alerts)
+# Script to remove all benign alerts from the database
 # This script ensures the virtual environment is activated before running
 
 cd "$(dirname "$0")"
@@ -24,18 +24,10 @@ if ! python3 -c "import sqlalchemy" 2>/dev/null; then
     echo "✅ Dependencies installed"
 fi
 
-# Remove any existing benign alerts first (if script exists)
-if [ -f "remove_benign_alerts.py" ]; then
-    echo "🧹 Removing any existing benign alerts..."
-    python3 remove_benign_alerts.py || echo "⚠️  Could not remove benign alerts (may not exist)"
-else
-    echo "⚠️  remove_benign_alerts.py not found, skipping benign alert removal"
-fi
-
-# Run the script (only creates malicious alerts)
-echo "🚀 Running dummy data script (malicious alerts only)..."
-python3 populate_dummy_data.py
+# Run the script
+echo "🧹 Removing benign alerts from database..."
+python3 remove_benign_alerts.py
 
 echo ""
-echo "✅ Done! All dummy alerts are malicious. Refresh your dashboard to see the analytics charts."
+echo "✅ Done! All benign alerts have been removed."
 
