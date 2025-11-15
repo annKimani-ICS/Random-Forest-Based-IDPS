@@ -275,9 +275,9 @@ async def get_alert_analytics(
     """Get alert analytics including attack type distribution, status distribution, top IPs, and time series - Only malicious alerts"""
     from collections import defaultdict
     
-    # Default to last 7 days
+    # Default to last 30 days (more inclusive) if no dates specified
     if from_date is None and to_date is None:
-        from_date = datetime.utcnow() - timedelta(days=7)
+        from_date = datetime.utcnow() - timedelta(days=30)
     
     # Only get malicious alerts (system only processes malicious alerts)
     query = db.query(Alert).filter(Alert.is_malicious == True)
@@ -287,6 +287,7 @@ async def get_alert_analytics(
         query = query.filter(Alert.event_ts <= to_date)
     
     alerts = query.all()
+    print(f"[BACKEND] Analytics query: found {len(alerts)} alerts (from_date={from_date}, to_date={to_date})")
     
     # Attack type distribution
     attack_type_dist = defaultdict(int)
