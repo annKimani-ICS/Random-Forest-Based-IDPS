@@ -47,7 +47,10 @@ function DashboardPage() {
           ...filters
         }),
         dashboardAPI.getAttackTrends(8),
-        dashboardAPI.getAlertAnalytics()
+        dashboardAPI.getAlertAnalytics().catch(err => {
+          console.error('Error loading analytics:', err);
+          return { data: null };
+        })
       ]);
 
       setKpis(kpisRes.data);
@@ -55,7 +58,16 @@ function DashboardPage() {
       setAlerts(alertsRes.data.alerts);
       setTotalAlerts(alertsRes.data.total);
       setTrends(trendsRes.data.trends);
-      setAlertAnalytics(analyticsRes.data);
+      
+      // Set analytics only if we got valid data
+      if (analyticsRes && analyticsRes.data) {
+        console.log('Analytics data loaded:', analyticsRes.data);
+        setAlertAnalytics(analyticsRes.data);
+      } else {
+        console.warn('No analytics data received');
+        setAlertAnalytics(null);
+      }
+      
       setError('');
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -131,6 +143,17 @@ function DashboardPage() {
 
       <div className="dashboard-content">
         {error && <div className="error-banner">{error}</div>}
+      
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && alertAnalytics && (
+        <div style={{ padding: '10px', background: '#f1f5f9', marginBottom: '1rem', borderRadius: '8px', fontSize: '12px' }}>
+          <strong>Debug:</strong> Analytics loaded - Total: {alertAnalytics.total_alerts}, 
+          Attack Types: {Object.keys(alertAnalytics.attack_type_distribution || {}).length},
+          Statuses: {Object.keys(alertAnalytics.status_distribution || {}).length},
+          Top IPs: {alertAnalytics.top_source_ips?.length || 0},
+          Time Points: {alertAnalytics.alerts_over_time?.length || 0}
+        </div>
+      )}
 
         {/* KPI Cards */}
         <div className="kpi-grid">
@@ -283,7 +306,7 @@ function DashboardPage() {
         )}
 
         {/* Alert Analytics */}
-        {alertAnalytics && (
+        {alertAnalytics && alertAnalytics.total_alerts > 0 && (
           <div className="analytics-section">
             <div className="section-header">
               <h2>Alert Analytics</h2>
@@ -293,70 +316,86 @@ function DashboardPage() {
               {/* Attack Type Distribution */}
               <div className="analytics-card">
                 <h3>Attack Type Distribution</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={Object.entries(alertAnalytics.attack_type_distribution).map(([name, value]) => ({ name, value }))}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#2563eb" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {alertAnalytics.attack_type_distribution && Object.keys(alertAnalytics.attack_type_distribution).length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={Object.entries(alertAnalytics.attack_type_distribution).map(([name, value]) => ({ name, value }))}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#2563eb" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No attack type data available</p>
+                )}
               </div>
 
               {/* Status Distribution */}
               <div className="analytics-card">
                 <h3>Status Distribution</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={Object.entries(alertAnalytics.status_distribution).map(([name, value]) => ({ name, value }))}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {Object.entries(alertAnalytics.status_distribution).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#ef4444', '#10b981', '#f59e0b', '#6366f1'][index % 4]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {alertAnalytics.status_distribution && Object.keys(alertAnalytics.status_distribution).length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={Object.entries(alertAnalytics.status_distribution).map(([name, value]) => ({ name, value }))}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {Object.entries(alertAnalytics.status_distribution).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#ef4444', '#10b981', '#f59e0b', '#6366f1'][index % 4]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No status data available</p>
+                )}
               </div>
 
               {/* Top Source IPs */}
               <div className="analytics-card">
                 <h3>Top Source IPs</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={alertAnalytics.top_source_ips} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="ip" type="category" width={120} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#10b981" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {alertAnalytics.top_source_ips && alertAnalytics.top_source_ips.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={alertAnalytics.top_source_ips} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="ip" type="category" width={120} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#10b981" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No source IP data available</p>
+                )}
               </div>
 
               {/* Alerts Over Time */}
               <div className="analytics-card" style={{ gridColumn: '1 / -1' }}>
                 <h3>Alerts Over Time</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={alertAnalytics.alerts_over_time}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="count" name="Total" stroke="#2563eb" strokeWidth={2} />
-                    <Line type="monotone" dataKey="malicious" name="Malicious" stroke="#ef4444" strokeWidth={2} />
-                    <Line type="monotone" dataKey="benign" name="Benign" stroke="#10b981" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {alertAnalytics.alerts_over_time && alertAnalytics.alerts_over_time.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={alertAnalytics.alerts_over_time}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="count" name="Total" stroke="#2563eb" strokeWidth={2} />
+                      <Line type="monotone" dataKey="malicious" name="Malicious" stroke="#ef4444" strokeWidth={2} />
+                      <Line type="monotone" dataKey="benign" name="Benign" stroke="#10b981" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No time series data available</p>
+                )}
               </div>
             </div>
 
