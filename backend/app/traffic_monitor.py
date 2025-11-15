@@ -284,7 +284,7 @@ class TrafficMonitor:
                                     'icmp_count': stats['icmp_count']
                                 }
                                 print(f"[MONITOR] SYN flood detected {src_ip} → {dst_ip} dport {getattr(packet[TCP],'dport',0)}: {syn_stats['count']} SYN/s")
-                                self._create_alert(src_ip, dst_ip, score, burst_stats)
+                                self._create_alert(src_ip, dst_ip, score, burst_stats, "DDoS TCP SYN Flood")
                             # reset window
                             syn_stats['first_seen'] = now
                             syn_stats['count'] = 0
@@ -350,6 +350,59 @@ class TrafficMonitor:
             # Log errors but don't spam
             print(f"[MONITOR] Error processing packet: {e}")
     
+    def _identify_attack_type(self, stats: Dict, window_seconds: float) -> str:
+        """
+        Identify specific DDoS attack type based on protocol and packet characteristics
+        
+        Returns:
+            Specific attack type string (e.g., "DDoS TCP", "DDoS UDP", "DDoS ICMP", etc.)
+        """
+        total_packets = stats['packets']
+        if total_packets == 0:
+            return "DDoS"
+        
+        tcp_count = stats['tcp_count']
+        udp_count = stats['udp_count']
+        icmp_count = stats['icmp_count']
+        
+        packets_per_sec = total_packets / window_seconds if window_seconds > 0 else 0
+        bytes_per_sec = stats['bytes'] / window_seconds if window_seconds > 0 else 0
+        
+        # Determine dominant protocol
+        tcp_ratio = tcp_count / total_packets
+        udp_ratio = udp_count / total_packets
+        icmp_ratio = icmp_count / total_packets
+        
+        # Identify attack type based on protocol dominance and characteristics
+        if tcp_ratio > 0.7:
+            # TCP-based DDoS attacks
+            if packets_per_sec > 1000:
+                return "DDoS TCP Flood"
+            elif len(stats.get('dst_ports', set())) == 1 and packets_per_sec > 500:
+                return "DDoS TCP SYN Flood"
+            else:
+                return "DDoS TCP"
+        elif udp_ratio > 0.7:
+            # UDP-based DDoS attacks
+            if packets_per_sec > 2000:
+                return "DDoS UDP Flood"
+            elif len(stats.get('dst_ports', set())) > 100:
+                return "DDoS UDP Reflection"
+            else:
+                return "DDoS UDP"
+        elif icmp_ratio > 0.7:
+            # ICMP-based DDoS attacks
+            if packets_per_sec > 1000:
+                return "DDoS ICMP Flood"
+            else:
+                return "DDoS ICMP"
+        elif tcp_ratio > 0.3 and udp_ratio > 0.3:
+            # Mixed protocol attack
+            return "DDoS Mixed Protocol"
+        else:
+            # Default to generic DDoS
+            return "DDoS"
+    
     def _analyze_flow(self, flow_key: str, src_ip: str, dst_ip: str, stats: Dict, window_seconds: float):
         """Analyze a flow and create alert if malicious"""
         try:
@@ -386,16 +439,18 @@ class TrafficMonitor:
             is_malicious = score >= self.threshold
             
             if is_malicious:
+                # Identify specific attack type
+                attack_type = self._identify_attack_type(stats, window_seconds)
                 # Create alert in database
-                self._create_alert(src_ip, dst_ip, score, stats)
+                self._create_alert(src_ip, dst_ip, score, stats, attack_type)
         
         except Exception as e:
             print(f"⚠️  Error analyzing flow: {e}")
             import traceback
             traceback.print_exc()
     
-    def _create_alert(self, src_ip: str, dst_ip: str, score: float, stats: Dict):
-        """Create alert in database"""
+    def _create_alert(self, src_ip: str, dst_ip: str, score: float, stats: Dict, attack_type: str = "DDoS"):
+        """Create alert in database with specific attack type"""
         db: Session = SessionLocal()
         try:
             # Check for recent duplicate alert (within last 30 seconds to allow more frequent updates)
@@ -406,13 +461,16 @@ class TrafficMonitor:
             ).first()
             
             if recent:
-                # Update existing alert score if higher
+                # Update existing alert score if higher, and update attack type if more specific
                 if score > float(recent.score):
                     recent.score = score
                     recent.is_malicious = score >= self.threshold
                     recent.event_ts = datetime.utcnow()
+                    # Update attack type if it's more specific (longer name usually means more specific)
+                    if len(attack_type) > len(recent.attack_type):
+                        recent.attack_type = attack_type
                     db.commit()
-                    print(f"📊 Updated alert for {src_ip} → {dst_ip} (score: {score:.3f})")
+                    print(f"📊 Updated alert for {src_ip} → {dst_ip} (score: {score:.3f}, type: {attack_type})")
                 else:
                     print(f"⏭️  Skipping duplicate alert for {src_ip} → {dst_ip} (score: {score:.3f} <= {recent.score:.3f})")
                 return
@@ -422,7 +480,7 @@ class TrafficMonitor:
                 event_ts=datetime.utcnow(),
                 src_ip=src_ip,
                 dst_ip=dst_ip,
-                attack_type="DDoS",  # Default for this system
+                attack_type=attack_type,  # Specific attack type identified
                 score=min(1.0, max(0.0, score)),
                 is_malicious=True,
                 status="NEW",
@@ -431,17 +489,20 @@ class TrafficMonitor:
                     'packets': stats['packets'],
                     'bytes': stats['bytes'],
                     'packets_per_second': stats['packets'] / self.window_size if self.window_size > 0 else 0,
+                    'bytes_per_second': stats['bytes'] / self.window_size if self.window_size > 0 else 0,
                     'protocols': {
                         'tcp': stats['tcp_count'],
                         'udp': stats['udp_count'],
                         'icmp': stats['icmp_count']
-                    }
+                    },
+                    'unique_src_ports': len(stats.get('src_ports', set())),
+                    'unique_dst_ports': len(stats.get('dst_ports', set()))
                 }
             )
             
             db.add(alert)
             db.commit()
-            print(f"🚨 Alert created: {src_ip} → {dst_ip} (score: {score:.3f})")
+            print(f"🚨 Alert created: {src_ip} → {dst_ip} (score: {score:.3f}, type: {attack_type})")
         
         except Exception as e:
             print(f"❌ Error creating alert: {e}")
