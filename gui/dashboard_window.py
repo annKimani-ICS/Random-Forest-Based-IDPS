@@ -267,7 +267,7 @@ class DashboardWindow(QMainWindow):
         alerts_tab = self.create_alerts_tab()
         self.tabs.addTab(alerts_tab, "🚨 Alerts")
         
-        # Analytics tab (no scroll - fits on one page)
+        # Analytics tab (no scroll - fits on one page) - Available for all users
         analytics_tab = self.create_analytics_tab()
         self.tabs.addTab(analytics_tab, "📈 Analytics")
         
@@ -573,7 +573,8 @@ class DashboardWindow(QMainWindow):
         self.preview_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.preview_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.preview_table.setAlternatingRowColors(True)
-        self.preview_table.setMaximumHeight(300)
+        self.preview_table.setMinimumHeight(200)
+        self.preview_table.setMaximumHeight(400)
         
         preview_layout.addWidget(self.preview_table)
         
@@ -1188,7 +1189,24 @@ class DashboardWindow(QMainWindow):
         """Load alerts preview for dashboard"""
         try:
             result = self.api_client.get_alerts(page=1, page_size=10)
-            alerts = result["alerts"]
+            alerts = result.get("alerts", [])
+            
+            if not alerts:
+                # Show message if no alerts
+                self.preview_table.setRowCount(1)
+                self.preview_table.setItem(0, 0, QTableWidgetItem("No alerts available"))
+                self.preview_table.setItem(0, 0, QTableWidgetItem(""))
+                self.preview_table.setItem(0, 1, QTableWidgetItem(""))
+                self.preview_table.setItem(0, 2, QTableWidgetItem(""))
+                self.preview_table.setItem(0, 3, QTableWidgetItem(""))
+                self.preview_table.setItem(0, 4, QTableWidgetItem(""))
+                self.preview_table.setItem(0, 5, QTableWidgetItem(""))
+                # Merge cells for message
+                self.preview_table.setSpan(0, 0, 1, 6)
+                msg_item = QTableWidgetItem("No recent alerts found")
+                msg_item.setTextAlignment(Qt.AlignCenter)
+                self.preview_table.setItem(0, 0, msg_item)
+                return
             
             self.preview_table.setRowCount(len(alerts))
             
@@ -1200,21 +1218,34 @@ class DashboardWindow(QMainWindow):
                 except Exception:
                     ts_str = str(alert["event_ts"])  # fallback
                 self.preview_table.setItem(row, 0, QTableWidgetItem(ts_str))
-                self.preview_table.setItem(row, 1, QTableWidgetItem(alert["src_ip"]))
-                self.preview_table.setItem(row, 2, QTableWidgetItem(alert["dst_ip"]))
-                self.preview_table.setItem(row, 3, QTableWidgetItem(alert["attack_type"]))
+                self.preview_table.setItem(row, 1, QTableWidgetItem(alert.get("src_ip", "N/A")))
+                self.preview_table.setItem(row, 2, QTableWidgetItem(alert.get("dst_ip", "N/A")))
+                self.preview_table.setItem(row, 3, QTableWidgetItem(alert.get("attack_type", "Unknown")))
                 
-                score_item = QTableWidgetItem(f"{alert['score']:.4f}")
-                if alert["is_malicious"]:
+                score = alert.get("score", 0.0)
+                score_item = QTableWidgetItem(f"{score:.4f}")
+                if alert.get("is_malicious", False):
                     score_item.setForeground(QColor("#ef4444"))
                 else:
                     score_item.setForeground(QColor("#10b981"))
                 self.preview_table.setItem(row, 4, score_item)
                 
-                self.preview_table.setItem(row, 5, QTableWidgetItem(alert["status"]))
+                self.preview_table.setItem(row, 5, QTableWidgetItem(alert.get("status", "NEW")))
+            
+            # Resize columns to fit content
+            self.preview_table.resizeColumnsToContents()
         
         except Exception as e:
             print(f"Error loading alerts preview: {e}")
+            import traceback
+            traceback.print_exc()
+            # Show error in table
+            self.preview_table.setRowCount(1)
+            self.preview_table.setSpan(0, 0, 1, 6)
+            error_item = QTableWidgetItem(f"Error loading alerts: {str(e)}")
+            error_item.setForeground(QColor("#ef4444"))
+            error_item.setTextAlignment(Qt.AlignCenter)
+            self.preview_table.setItem(0, 0, error_item)
     
     def load_alerts(self):
         """Load alerts table"""
