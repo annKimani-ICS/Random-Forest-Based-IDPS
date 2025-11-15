@@ -685,7 +685,7 @@ class DashboardWindow(QMainWindow):
         status_group.setLayout(status_layout)
         charts_layout.addWidget(status_group, 0, 1)
         
-        # Top Source IPs Chart - Bottom Left (larger)
+        # Top Source IPs Chart - Bottom Left
         top_ips_group = QGroupBox("Top Source IPs")
         top_ips_group.setStyleSheet(chart_style)
         top_ips_layout = QVBoxLayout()
@@ -695,6 +695,17 @@ class DashboardWindow(QMainWindow):
         top_ips_layout.addWidget(self.top_ips_chart)
         top_ips_group.setLayout(top_ips_layout)
         charts_layout.addWidget(top_ips_group, 1, 0)
+        
+        # Top Destination Ports Chart - Bottom Right (new)
+        top_ports_group = QGroupBox("Top Destination Ports")
+        top_ports_group.setStyleSheet(chart_style)
+        top_ports_layout = QVBoxLayout()
+        top_ports_layout.setContentsMargins(5, 5, 5, 5)
+        self.top_ports_chart = FigureCanvas(Figure(figsize=(7, 4.5)))
+        self.top_ports_chart.setMinimumHeight(350)
+        top_ports_layout.addWidget(self.top_ports_chart)
+        top_ports_group.setLayout(top_ports_layout)
+        charts_layout.addWidget(top_ports_group, 1, 1)
         
         # Alerts Over Time Chart - Bottom (full width, larger)
         time_series_group = QGroupBox("Alerts Over Time")
@@ -1427,10 +1438,12 @@ class DashboardWindow(QMainWindow):
                 self.score_dist_chart.figure.clear()
                 self.status_chart.figure.clear()
                 self.top_ips_chart.figure.clear()
+                self.top_ports_chart.figure.clear()
                 self.time_series_chart.figure.clear()
                 self.score_dist_chart.draw()
                 self.status_chart.draw()
                 self.top_ips_chart.draw()
+                self.top_ports_chart.draw()
                 self.time_series_chart.draw()
                 return
             
@@ -1544,6 +1557,47 @@ class DashboardWindow(QMainWindow):
                 ax.set_title('Top Source IPs', fontsize=12, fontweight='bold')
                 self.top_ips_chart.draw()
             
+            # Top Destination Ports (Horizontal Bar Chart) - New
+            top_ports = analytics.get('top_destination_ports', [])
+            print(f"[ANALYTICS] Top Ports: {top_ports} (type: {type(top_ports)}, length: {len(top_ports) if top_ports else 0})")
+            if top_ports and len(top_ports) > 0:
+                print(f"[ANALYTICS] Rendering top ports chart with {len(top_ports)} ports")
+                self.top_ports_chart.figure.clear()
+                ax = self.top_ports_chart.figure.add_subplot(111)
+                # Take top 10
+                top_ports_data = top_ports[:10]
+                # Format labels: "Port 80 (HTTP)" or "Port 12345"
+                port_labels = []
+                for item in top_ports_data:
+                    port = item.get('port', item.get('port', 'Unknown'))
+                    service = item.get('service', '')
+                    if service and service != f"Port {port}":
+                        port_labels.append(f"Port {port}\n({service})")
+                    else:
+                        port_labels.append(f"Port {port}")
+                counts = [item['count'] for item in top_ports_data]
+                bars = ax.barh(port_labels, counts, color='#6366f1', edgecolor='#4f46e5', linewidth=1.5)
+                ax.set_xlabel('Alert Count', fontsize=11, fontweight='bold')
+                ax.set_ylabel('Destination Port', fontsize=11, fontweight='bold')
+                ax.set_title('Top Destination Ports', fontsize=12, fontweight='bold', pad=15)
+                ax.grid(axis='x', alpha=0.3, linestyle='--')
+                # Add value labels on bars
+                for i, (bar, count) in enumerate(zip(bars, counts)):
+                    width = bar.get_width()
+                    ax.text(width, bar.get_y() + bar.get_height()/2.,
+                           f' {count}', ha='left', va='center', fontsize=9, fontweight='bold')
+                self.top_ports_chart.figure.tight_layout()
+                self.top_ports_chart.draw()
+                print(f"[ANALYTICS] Top ports chart rendered successfully")
+            else:
+                print(f"[ANALYTICS] No top ports data available (got: {top_ports})")
+                # Draw empty chart
+                self.top_ports_chart.figure.clear()
+                ax = self.top_ports_chart.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 'No port data', ha='center', va='center', transform=ax.transAxes)
+                ax.set_title('Top Destination Ports', fontsize=12, fontweight='bold')
+                self.top_ports_chart.draw()
+            
             # Alerts Over Time (Line Chart)
             time_series = analytics.get('alerts_over_time', [])
             print(f"[ANALYTICS] Time series: {time_series} (type: {type(time_series)}, length: {len(time_series) if time_series else 0})")
@@ -1577,7 +1631,7 @@ class DashboardWindow(QMainWindow):
                 ax.set_title('Alerts Over Time', fontsize=12, fontweight='bold')
                 self.time_series_chart.draw()
             
-            print(f"[ANALYTICS] All charts processed. Summary: Total={total}, ScoreDist={len(score_dist) if score_dist else 0}, Statuses={len(statuses) if statuses else 0}, TopIPs={len(top_ips) if top_ips else 0}, TimeSeries={len(time_series) if time_series else 0}")
+            print(f"[ANALYTICS] All charts processed. Summary: Total={total}, ScoreDist={len(score_dist) if score_dist else 0}, Statuses={len(statuses) if statuses else 0}, TopIPs={len(top_ips) if top_ips else 0}, TopPorts={len(top_ports) if top_ports else 0}, TimeSeries={len(time_series) if time_series else 0}")
                 
         except Exception as e:
             print(f"Error loading analytics: {e}")
@@ -1594,10 +1648,12 @@ class DashboardWindow(QMainWindow):
                     self.score_dist_chart.figure.clear()
                     self.status_chart.figure.clear()
                     self.top_ips_chart.figure.clear()
+                    self.top_ports_chart.figure.clear()
                     self.time_series_chart.figure.clear()
                     self.score_dist_chart.draw()
                     self.status_chart.draw()
                     self.top_ips_chart.draw()
+                    self.top_ports_chart.draw()
                     self.time_series_chart.draw()
                 except:
                     pass

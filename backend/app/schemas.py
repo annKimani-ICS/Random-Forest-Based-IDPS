@@ -179,6 +179,7 @@ class AlertAnalyticsResponse(AppBaseModel):
     score_distribution: Dict[str, int]  # New: Alert score/severity distribution
     status_distribution: Dict[str, int]
     top_source_ips: List[Dict[str, Any]]
+    top_destination_ports: List[Dict[str, Any]]  # New: Top destination ports being targeted
     alerts_over_time: List[Dict[str, Any]]
     total_alerts: int
     malicious_count: int

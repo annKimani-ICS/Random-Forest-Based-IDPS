@@ -30,6 +30,17 @@ def log_audit(db: Session, user_id: str, action: str, details: dict = None, ip_a
     db.add(audit_log)
     db.commit()
 
+def _get_port_service(port: int) -> str:
+    """Get common service name for a port"""
+    common_ports = {
+        80: "HTTP", 443: "HTTPS", 22: "SSH", 21: "FTP", 25: "SMTP",
+        53: "DNS", 3306: "MySQL", 5432: "PostgreSQL", 3389: "RDP",
+        8080: "HTTP-Alt", 8443: "HTTPS-Alt", 23: "Telnet", 110: "POP3",
+        143: "IMAP", 993: "IMAPS", 995: "POP3S", 161: "SNMP", 162: "SNMP-Trap",
+        445: "SMB", 139: "NetBIOS", 135: "MS-RPC", 1433: "MSSQL", 1521: "Oracle"
+    }
+    return common_ports.get(port, f"Port {port}")
+
 def get_current_threshold(db: Session) -> float:
     """Get current threshold value"""
     threshold = db.query(Threshold).order_by(desc(Threshold.updated_at)).first()
@@ -322,6 +333,20 @@ async def get_alert_analytics(
         for ip, count in sorted(src_ip_counts.items(), key=lambda x: x[1], reverse=True)[:10]
     ]
     
+    # Top destination ports (from payload)
+    dst_port_counts = defaultdict(int)
+    for alert in alerts:
+        if alert.payload and isinstance(alert.payload, dict):
+            # Try different possible keys for port
+            port = alert.payload.get('port') or alert.payload.get('dst_port') or alert.payload.get('dport')
+            if port:
+                dst_port_counts[int(port)] += 1
+    
+    top_destination_ports = [
+        {"port": port, "count": count, "service": _get_port_service(port)}
+        for port, count in sorted(dst_port_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    ]
+    
     # Alerts over time (by day) - all alerts are malicious
     daily_counts = defaultdict(lambda: {"date": "", "count": 0})
     for alert in alerts:
@@ -343,6 +368,7 @@ async def get_alert_analytics(
         score_distribution=dict(score_distribution),
         status_distribution=dict(status_dist),
         top_source_ips=top_source_ips,
+        top_destination_ports=top_destination_ports,
         alerts_over_time=alerts_over_time,
         total_alerts=len(alerts),
         malicious_count=malicious_count,
