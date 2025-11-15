@@ -1408,6 +1408,20 @@ class DashboardWindow(QMainWindow):
             self.malicious_label.setText(f"Malicious: {malicious}")
             # Benign label removed - system only shows malicious alerts
             
+            # If no alerts, show empty state instead of error
+            if total == 0:
+                print("No alerts in database - showing empty state")
+                # Clear all charts by clearing figures
+                self.attack_type_chart.figure.clear()
+                self.status_chart.figure.clear()
+                self.top_ips_chart.figure.clear()
+                self.time_series_chart.figure.clear()
+                self.attack_type_chart.draw()
+                self.status_chart.draw()
+                self.top_ips_chart.draw()
+                self.time_series_chart.draw()
+                return
+            
             # Attack Type Distribution (Bar Chart)
             attack_types = analytics.get('attack_type_distribution', {})
             print(f"Attack types: {attack_types}")
@@ -1518,8 +1532,31 @@ class DashboardWindow(QMainWindow):
             print(f"Error loading analytics: {e}")
             import traceback
             traceback.print_exc()
-            # Show error message to user
-            QMessageBox.warning(self, "Analytics Error", f"Failed to load analytics: {str(e)}")
+            
+            # Check if it's a 404 (endpoint not found) or empty data
+            error_str = str(e).lower()
+            if "not found" in error_str or "404" in error_str:
+                # Endpoint might not exist - just show empty state, don't show error
+                print("Analytics endpoint not found - showing empty state")
+                # Clear charts by clearing figure
+                try:
+                    self.attack_type_chart.figure.clear()
+                    self.status_chart.figure.clear()
+                    self.top_ips_chart.figure.clear()
+                    self.time_series_chart.figure.clear()
+                    self.attack_type_chart.draw()
+                    self.status_chart.draw()
+                    self.top_ips_chart.draw()
+                    self.time_series_chart.draw()
+                except:
+                    pass
+                self.total_alerts_label.setText("Total Alerts: 0")
+                self.malicious_label.setText("Malicious: 0")
+            else:
+                # Other errors - show warning but don't block login
+                print(f"Analytics error (non-critical): {e}")
+                # Don't show error message on login - just log it
+                # QMessageBox.warning(self, "Analytics Error", f"Failed to load analytics: {str(e)}")
     
     def acknowledge_alert(self, alert_id):
         """Acknowledge an alert"""
