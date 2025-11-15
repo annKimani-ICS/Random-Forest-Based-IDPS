@@ -19,19 +19,42 @@ fi
 # Create venv if it doesn't exist
 if [ -z "$VENV_PATH" ]; then
     echo "⚠️  Virtual environment not found. Creating one..."
+    # Check if python3-venv is installed
+    if ! python3 -m venv --help > /dev/null 2>&1; then
+        echo "❌ python3-venv module not available. Installing..."
+        echo "   Please run: sudo apt install python3-venv python3-full"
+        exit 1
+    fi
     python3 -m venv .venv
     VENV_PATH=".venv"
+    
+    # Verify venv was created properly
+    if [ ! -f ".venv/bin/python3" ] && [ ! -f ".venv/bin/python" ]; then
+        echo "❌ Virtual environment creation failed"
+        echo "   Trying alternative: python3 -m venv --without-pip .venv"
+        python3 -m venv --without-pip .venv
+        # Install pip manually
+        curl -sS https://bootstrap.pypa.io/get-pip.py | .venv/bin/python3
+    fi
     echo "✅ Virtual environment created"
 fi
 
 # Use venv's python and pip directly (more reliable than activation)
-PYTHON_BIN="$VENV_PATH/bin/python3"
-PIP_BIN="$VENV_PATH/bin/pip"
-
-# Check if python exists in venv
-if [ ! -f "$PYTHON_BIN" ]; then
-    echo "❌ Python not found in virtual environment at $PYTHON_BIN"
+# Check for python3 first, then python
+if [ -f "$VENV_PATH/bin/python3" ]; then
+    PYTHON_BIN="$VENV_PATH/bin/python3"
+elif [ -f "$VENV_PATH/bin/python" ]; then
+    PYTHON_BIN="$VENV_PATH/bin/python"
+else
+    echo "❌ Python not found in virtual environment"
+    echo "   Expected at: $VENV_PATH/bin/python3 or $VENV_PATH/bin/python"
+    echo "   Please check if python3-venv is installed: sudo apt install python3-venv python3-full"
     exit 1
+fi
+
+PIP_BIN="$VENV_PATH/bin/pip"
+if [ ! -f "$PIP_BIN" ]; then
+    PIP_BIN="$VENV_PATH/bin/pip3"
 fi
 
 # Check if dependencies are installed
