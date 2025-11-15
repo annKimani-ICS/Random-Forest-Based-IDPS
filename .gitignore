@@ -57,3 +57,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Ignore specific visualization/analysis scripts
+scripts/create_confusion_matrix_roc_iteration4.py
+scripts/create_iteration4_visualizations.py
