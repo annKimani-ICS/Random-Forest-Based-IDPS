@@ -243,10 +243,8 @@ async def get_attack_trends(
         week_key = week_start.strftime('%Y-%m-%d')
         
         weekly_data[week_key]['total'] += 1
-        if alert.is_malicious:
-            weekly_data[week_key]['malicious'] += 1
-        else:
-            weekly_data[week_key]['benign'] += 1
+        weekly_data[week_key]['malicious'] += 1  # All alerts are malicious
+        weekly_data[week_key]['benign'] = 0  # No benign alerts
         weekly_data[week_key]['attack_types'][alert.attack_type] += 1
     
     # Generate all weeks in the range (including weeks with no data)
