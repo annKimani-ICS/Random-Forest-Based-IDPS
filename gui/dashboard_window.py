@@ -1161,23 +1161,6 @@ class DashboardWindow(QMainWindow):
     def load_data(self):
         """Load all dashboard data"""
         try:
-            # Verify authentication first
-            try:
-                self.api_client.get_current_user()
-            except Exception as auth_error:
-                # If authentication fails, show error and close dashboard
-                error_msg = str(auth_error).lower()
-                if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
-                    QMessageBox.warning(
-                        self, 
-                        "Authentication Error", 
-                        "Your session has expired. Please log in again."
-                    )
-                    self.logout()
-                    return
-                else:
-                    raise
-            
             # Load KPIs
             kpis = self.api_client.get_kpis()
             self.alerts_24h_card.update_value(kpis["alerts_24h"])
@@ -2054,6 +2037,23 @@ class DashboardWindow(QMainWindow):
     def refresh_data(self):
         """Refresh all data (called by timer)"""
         try:
+            # Verify authentication on refresh (session might have expired)
+            try:
+                self.api_client.get_current_user()
+            except Exception as auth_error:
+                error_msg = str(auth_error).lower()
+                if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
+                    # Session expired - stop timer and logout
+                    self.refresh_timer.stop()
+                    QMessageBox.warning(
+                        self, 
+                        "Session Expired", 
+                        "Your session has expired. Please log in again."
+                    )
+                    self.logout()
+                    return
+                else:
+                    raise
             self.load_data()
             if self.is_admin and hasattr(self, 'update_monitoring_status'):
                 self.update_monitoring_status()
