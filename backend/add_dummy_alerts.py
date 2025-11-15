@@ -91,11 +91,11 @@ def generate_dummy_alerts():
             src_ip = random.choice(source_ips)
             dst_ip = random.choice(dest_ips)
             
-            # Random score (0.0 to 1.0)
-            score = round(random.uniform(0.1, 0.99), 4)
+            # Only create malicious alerts (score >= 0.5)
+            score = round(random.uniform(0.5, 0.99), 4)
             
-            # Determine if malicious based on score
-            is_malicious = score >= 0.5
+            # All alerts are malicious (system only processes malicious alerts)
+            is_malicious = True
             
             # Random status
             status = random.choice(list(AlertStatus))
