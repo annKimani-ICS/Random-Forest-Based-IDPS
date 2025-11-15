@@ -1404,8 +1404,11 @@ class DashboardWindow(QMainWindow):
     def load_analytics(self):
         """Load and display analytics charts"""
         try:
+            print(f"[ANALYTICS] Attempting to load analytics...")
             analytics = self.api_client.get_alert_analytics()
-            print(f"[ANALYTICS] Full response: {analytics}")
+            print(f"[ANALYTICS] Full response received: {analytics}")
+            print(f"[ANALYTICS] Response type: {type(analytics)}")
+            print(f"[ANALYTICS] Response keys: {list(analytics.keys()) if isinstance(analytics, dict) else 'Not a dict'}")
             
             # Update summary stats (only malicious alerts)
             total = analytics.get('total_alerts', 0)

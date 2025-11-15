@@ -145,6 +145,16 @@ class APIClient:
             headers=self._get_headers(),
             timeout=self.timeout
         )
+        print(f"[API_CLIENT] Analytics request: {response.status_code} - {response.url}")
+        print(f"[API_CLIENT] Response headers: {dict(response.headers)}")
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                print(f"[API_CLIENT] Analytics response data: {data}")
+                return data
+            except Exception as e:
+                print(f"[API_CLIENT] Error parsing JSON: {e}, Response text: {response.text[:200]}")
+                raise
         return self._handle_response(response)
 
     def download_alerts_csv(self, **filters) -> bytes:
