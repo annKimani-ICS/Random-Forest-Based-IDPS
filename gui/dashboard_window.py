@@ -216,9 +216,8 @@ class DashboardWindow(QMainWindow):
         # Auto-refresh timer
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh_data)
-        # Start refresh timer after initial delay to avoid checking auth immediately after login
-        QTimer.singleShot(5000, lambda: self.refresh_timer.start(30000))  # Start after 5 seconds, then every 30 seconds
-        self._refresh_count = 0  # Track refresh count to skip auth check on first few refreshes
+        # Start refresh timer after initial delay to avoid immediate refresh after login
+        QTimer.singleShot(30000, lambda: self.refresh_timer.start(30000))  # Start after 30 seconds, then every 30 seconds
         
         self.setup_ui()
         self.load_data()
@@ -1208,15 +1207,27 @@ class DashboardWindow(QMainWindow):
         
         except Exception as e:
             error_msg = str(e).lower()
+            # Only show auth error if we're not in a refresh (to avoid popups during auto-refresh)
+            # Check if this is being called from refresh by checking if timer is running
+            is_refresh = self.refresh_timer.isActive() if hasattr(self, 'refresh_timer') else False
+            
             if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
-                QMessageBox.warning(
-                    self, 
-                    "Authentication Error", 
-                    "Your session has expired. Please log in again."
-                )
-                self.logout(skip_confirmation=True)
+                # Only show error on initial load, not during auto-refresh
+                if not is_refresh:
+                    QMessageBox.warning(
+                        self, 
+                        "Authentication Error", 
+                        "Your session has expired. Please log in again."
+                    )
+                    self.logout(skip_confirmation=True)
+                else:
+                    # During refresh, just stop the timer silently
+                    if hasattr(self, 'refresh_timer'):
+                        self.refresh_timer.stop()
             else:
-                QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
+                # Only show other errors on initial load
+                if not is_refresh:
+                    QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
     
     def load_alerts_preview(self):
         """Load alerts preview for dashboard"""
@@ -2039,33 +2050,13 @@ class DashboardWindow(QMainWindow):
     def refresh_data(self):
         """Refresh all data (called by timer)"""
         try:
-            # Skip auth check for first 2 refreshes (first minute) to avoid false positives after login
-            self._refresh_count = getattr(self, '_refresh_count', 0) + 1
-            
-            # Verify authentication on refresh (session might have expired)
-            # But skip check for first 2 refreshes to avoid false positives right after login
-            if self._refresh_count > 2:
-                try:
-                    self.api_client.get_current_user()
-                except Exception as auth_error:
-                    error_msg = str(auth_error).lower()
-                    if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
-                        # Session expired - stop timer and logout
-                        self.refresh_timer.stop()
-                        QMessageBox.warning(
-                            self, 
-                            "Session Expired", 
-                            "Your session has expired. Please log in again."
-                        )
-                        self.logout(skip_confirmation=True)
-                        return
-                    else:
-                        raise
-            
+            # Just load data - let API calls handle auth errors naturally
+            # Don't proactively check auth to avoid false positives
             self.load_data()
             if self.is_admin and hasattr(self, 'update_monitoring_status'):
                 self.update_monitoring_status()
         except:
+            # Silently handle errors during refresh - don't show popups
             pass
     
     def logout(self, skip_confirmation=False):
