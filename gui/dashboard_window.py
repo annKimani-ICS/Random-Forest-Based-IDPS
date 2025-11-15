@@ -1239,25 +1239,36 @@ class DashboardWindow(QMainWindow):
                 # Show message if no alerts
                 self.preview_table.setRowCount(1)
                 self.preview_table.setColumnCount(6)
-                # Clear any existing spans
+                # Clear any existing spans and items
                 for row in range(self.preview_table.rowCount()):
                     for col in range(self.preview_table.columnCount()):
-                        item = self.preview_table.item(row, col)
-                        if item:
+                        # Check if this cell is part of a span
+                        row_span = self.preview_table.rowSpan(row, col)
+                        col_span = self.preview_table.columnSpan(row, col)
+                        if row_span > 1 or col_span > 1:
+                            # Clear the item to remove the span
                             self.preview_table.setItem(row, col, None)
-                # Merge cells for message
+                        else:
+                            # Just clear the item
+                            self.preview_table.setItem(row, col, None)
+                # Merge cells for message (spanning 1 row, 6 columns is valid)
                 self.preview_table.setSpan(0, 0, 1, 6)
                 msg_item = QTableWidgetItem("No recent alerts found")
                 msg_item.setTextAlignment(Qt.AlignCenter)
                 self.preview_table.setItem(0, 0, msg_item)
                 return
             
-            # Clear any existing spans
+            # Clear any existing spans by checking if they exist and are larger than 1x1
+            # Note: We can't set 1x1 spans (Qt doesn't allow it), so we need to clear items instead
             for row in range(self.preview_table.rowCount()):
                 for col in range(self.preview_table.columnCount()):
-                    span = self.preview_table.item(row, col)
-                    if span:
-                        self.preview_table.setSpan(row, col, 1, 1)
+                    # Check if this cell is part of a span (by checking if rowSpan or columnSpan > 1)
+                    row_span = self.preview_table.rowSpan(row, col)
+                    col_span = self.preview_table.columnSpan(row, col)
+                    # Only clear if it's actually a span (greater than 1x1)
+                    if row_span > 1 or col_span > 1:
+                        # Clear the item to remove the span
+                        self.preview_table.setItem(row, col, None)
             
             self.preview_table.setRowCount(len(alerts))
             
@@ -1292,6 +1303,17 @@ class DashboardWindow(QMainWindow):
             traceback.print_exc()
             # Show error in table
             self.preview_table.setRowCount(1)
+            self.preview_table.setColumnCount(6)
+            # Clear any existing spans first
+            for row in range(self.preview_table.rowCount()):
+                for col in range(self.preview_table.columnCount()):
+                    row_span = self.preview_table.rowSpan(row, col)
+                    col_span = self.preview_table.columnSpan(row, col)
+                    if row_span > 1 or col_span > 1:
+                        self.preview_table.setItem(row, col, None)
+                    else:
+                        self.preview_table.setItem(row, col, None)
+            # Merge cells for error message (spanning 1 row, 6 columns is valid)
             self.preview_table.setSpan(0, 0, 1, 6)
             error_item = QTableWidgetItem(f"Error loading alerts: {str(e)}")
             error_item.setForeground(QColor("#ef4444"))
