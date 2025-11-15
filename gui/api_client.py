@@ -136,6 +136,16 @@ class APIClient:
             timeout=self.timeout
         )
         return self._handle_response(response)
+    
+    def get_alert_analytics(self, **filters) -> Dict[str, Any]:
+        """Get alert analytics including distributions and statistics"""
+        response = self.session.get(
+            f"{self.base_url}/api/alerts/analytics",
+            params=filters,
+            headers=self._get_headers(),
+            timeout=self.timeout
+        )
+        return self._handle_response(response)
 
     def download_alerts_csv(self, **filters) -> bytes:
         """Download alerts CSV with filters. Returns raw bytes."""

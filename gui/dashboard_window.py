@@ -247,6 +247,10 @@ class DashboardWindow(QMainWindow):
         alerts_tab = self.create_alerts_tab()
         self.tabs.addTab(alerts_tab, "🚨 Alerts")
         
+        # Analytics tab (with scroll area)
+        analytics_tab = self.create_analytics_tab()
+        self.tabs.addTab(analytics_tab, "📈 Analytics")
+        
         # Security tab (with scroll area)
         security_tab = self.create_security_tab()
         self.tabs.addTab(security_tab, "🔐 Security")
@@ -561,6 +565,105 @@ class DashboardWindow(QMainWindow):
         scroll_area.setWidget(content_widget)
         
         return scroll_area
+    
+    def create_analytics_tab(self):
+        """Create analytics tab with charts"""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
+        widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
+        
+        # Title
+        title = QLabel("Alert Analytics")
+        title.setFont(QFont("Arial", 18, QFont.Bold))
+        title.setStyleSheet("color: #1e293b; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        # Summary Stats
+        summary_group = QGroupBox("Summary Statistics")
+        summary_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding: 20px;
+                background-color: white;
+            }
+        """)
+        summary_layout = QHBoxLayout()
+        self.total_alerts_label = QLabel("Total Alerts: 0")
+        self.malicious_label = QLabel("Malicious: 0")
+        self.benign_label = QLabel("Benign: 0")
+        for label in [self.total_alerts_label, self.malicious_label, self.benign_label]:
+            label.setFont(QFont("Arial", 12))
+            label.setStyleSheet("padding: 10px;")
+        self.malicious_label.setStyleSheet("padding: 10px; color: #ef4444;")
+        self.benign_label.setStyleSheet("padding: 10px; color: #10b981;")
+        summary_layout.addWidget(self.total_alerts_label)
+        summary_layout.addWidget(self.malicious_label)
+        summary_layout.addWidget(self.benign_label)
+        summary_layout.addStretch()
+        summary_group.setLayout(summary_layout)
+        layout.addWidget(summary_group)
+        
+        # Charts Grid
+        charts_layout = QGridLayout()
+        charts_layout.setSpacing(20)
+        
+        # Attack Type Distribution Chart
+        attack_type_group = QGroupBox("Attack Type Distribution")
+        attack_type_group.setStyleSheet(summary_group.styleSheet())
+        attack_type_layout = QVBoxLayout()
+        self.attack_type_chart = FigureCanvas(Figure(figsize=(6, 4)))
+        attack_type_layout.addWidget(self.attack_type_chart)
+        attack_type_group.setLayout(attack_type_layout)
+        charts_layout.addWidget(attack_type_group, 0, 0)
+        
+        # Status Distribution Chart
+        status_group = QGroupBox("Status Distribution")
+        status_group.setStyleSheet(summary_group.styleSheet())
+        status_layout = QVBoxLayout()
+        self.status_chart = FigureCanvas(Figure(figsize=(6, 4)))
+        status_layout.addWidget(self.status_chart)
+        status_group.setLayout(status_layout)
+        charts_layout.addWidget(status_group, 0, 1)
+        
+        # Top Source IPs Chart
+        top_ips_group = QGroupBox("Top Source IPs")
+        top_ips_group.setStyleSheet(summary_group.styleSheet())
+        top_ips_layout = QVBoxLayout()
+        self.top_ips_chart = FigureCanvas(Figure(figsize=(6, 4)))
+        top_ips_layout.addWidget(self.top_ips_chart)
+        top_ips_group.setLayout(top_ips_layout)
+        charts_layout.addWidget(top_ips_group, 1, 0)
+        
+        # Alerts Over Time Chart
+        time_series_group = QGroupBox("Alerts Over Time")
+        time_series_group.setStyleSheet(summary_group.styleSheet())
+        time_series_layout = QVBoxLayout()
+        self.time_series_chart = FigureCanvas(Figure(figsize=(12, 4)))
+        time_series_layout.addWidget(self.time_series_chart)
+        time_series_group.setLayout(time_series_layout)
+        charts_layout.addWidget(time_series_group, 1, 1)
+        
+        layout.addLayout(charts_layout)
+        layout.addStretch()
+        
+        widget.setLayout(layout)
+        scroll.setWidget(widget)
+        return scroll
     
     def create_alerts_tab(self):
         """Create alerts management tab"""
@@ -1023,6 +1126,9 @@ class DashboardWindow(QMainWindow):
             # Load alerts
             self.load_alerts()
             
+            # Load analytics
+            self.load_analytics()
+            
             # Load blocks if admin
             if self.is_admin:
                 self.load_blocks()
@@ -1199,6 +1305,83 @@ class DashboardWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to export CSV: {str(e)}")
     
+    def load_analytics(self):
+        """Load and display analytics charts"""
+        try:
+            analytics = self.api_client.get_alert_analytics()
+            
+            # Update summary stats
+            self.total_alerts_label.setText(f"Total Alerts: {analytics.get('total_alerts', 0)}")
+            self.malicious_label.setText(f"Malicious: {analytics.get('malicious_count', 0)}")
+            self.benign_label.setText(f"Benign: {analytics.get('benign_count', 0)}")
+            
+            # Attack Type Distribution (Bar Chart)
+            attack_types = analytics.get('attack_type_distribution', {})
+            if attack_types:
+                self.attack_type_chart.figure.clear()
+                ax = self.attack_type_chart.figure.add_subplot(111)
+                types = list(attack_types.keys())
+                counts = list(attack_types.values())
+                ax.bar(types, counts, color='#2563eb')
+                ax.set_xlabel('Attack Type')
+                ax.set_ylabel('Count')
+                ax.set_title('Attack Type Distribution')
+                ax.tick_params(axis='x', rotation=45, ha='right')
+                self.attack_type_chart.figure.tight_layout()
+                self.attack_type_chart.draw()
+            
+            # Status Distribution (Pie Chart)
+            statuses = analytics.get('status_distribution', {})
+            if statuses:
+                self.status_chart.figure.clear()
+                ax = self.status_chart.figure.add_subplot(111)
+                labels = list(statuses.keys())
+                sizes = list(statuses.values())
+                colors = ['#ef4444', '#10b981', '#f59e0b', '#6366f1']
+                ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors[:len(labels)], startangle=90)
+                ax.set_title('Status Distribution')
+                self.status_chart.figure.tight_layout()
+                self.status_chart.draw()
+            
+            # Top Source IPs (Horizontal Bar Chart)
+            top_ips = analytics.get('top_source_ips', [])
+            if top_ips:
+                self.top_ips_chart.figure.clear()
+                ax = self.top_ips_chart.figure.add_subplot(111)
+                ips = [item['ip'] for item in top_ips]
+                counts = [item['count'] for item in top_ips]
+                ax.barh(ips, counts, color='#10b981')
+                ax.set_xlabel('Alert Count')
+                ax.set_ylabel('Source IP')
+                ax.set_title('Top Source IPs')
+                self.top_ips_chart.figure.tight_layout()
+                self.top_ips_chart.draw()
+            
+            # Alerts Over Time (Line Chart)
+            time_series = analytics.get('alerts_over_time', [])
+            if time_series:
+                self.time_series_chart.figure.clear()
+                ax = self.time_series_chart.figure.add_subplot(111)
+                dates = [item['date'] for item in time_series]
+                totals = [item['count'] for item in time_series]
+                malicious = [item['malicious'] for item in time_series]
+                benign = [item['benign'] for item in time_series]
+                ax.plot(dates, totals, label='Total', color='#2563eb', linewidth=2)
+                ax.plot(dates, malicious, label='Malicious', color='#ef4444', linewidth=2)
+                ax.plot(dates, benign, label='Benign', color='#10b981', linewidth=2)
+                ax.set_xlabel('Date')
+                ax.set_ylabel('Alert Count')
+                ax.set_title('Alerts Over Time')
+                ax.legend()
+                ax.tick_params(axis='x', rotation=45, ha='right')
+                self.time_series_chart.figure.tight_layout()
+                self.time_series_chart.draw()
+                
+        except Exception as e:
+            print(f"Error loading analytics: {e}")
+            import traceback
+            traceback.print_exc()
+    
     def acknowledge_alert(self, alert_id):
         """Acknowledge an alert"""
         try:
@@ -1206,6 +1389,7 @@ class DashboardWindow(QMainWindow):
             QMessageBox.information(self, "Success", "Alert acknowledged")
             self.load_alerts()
             self.load_alerts_preview()
+            self.load_analytics()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to acknowledge alert: {str(e)}")
     
