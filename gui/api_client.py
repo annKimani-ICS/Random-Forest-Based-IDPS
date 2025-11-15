@@ -72,7 +72,7 @@ class APIClient:
         return self._handle_response(response)
     
     def logout(self):
-        """Logout"""
+        """Logout and clear all session data"""
         if self.refresh_token:
             try:
                 self.session.post(
@@ -84,8 +84,14 @@ class APIClient:
             except:
                 pass
         
+        # Clear tokens
         self.access_token = None
         self.refresh_token = None
+        
+        # Clear all cookies and session data
+        self.session.cookies.clear()
+        # Create a new session to ensure it's completely fresh
+        self.session = requests.Session()
     
     # MFA Enrollment
     def enroll_mfa(self) -> Dict[str, Any]:
@@ -145,16 +151,6 @@ class APIClient:
             headers=self._get_headers(),
             timeout=self.timeout
         )
-        print(f"[API_CLIENT] Analytics request: {response.status_code} - {response.url}")
-        print(f"[API_CLIENT] Response headers: {dict(response.headers)}")
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                print(f"[API_CLIENT] Analytics response data: {data}")
-                return data
-            except Exception as e:
-                print(f"[API_CLIENT] Error parsing JSON: {e}, Response text: {response.text[:200]}")
-                raise
         return self._handle_response(response)
 
     def download_alerts_csv(self, **filters) -> bytes:

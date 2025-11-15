@@ -1161,6 +1161,23 @@ class DashboardWindow(QMainWindow):
     def load_data(self):
         """Load all dashboard data"""
         try:
+            # Verify authentication first
+            try:
+                self.api_client.get_current_user()
+            except Exception as auth_error:
+                # If authentication fails, show error and close dashboard
+                error_msg = str(auth_error).lower()
+                if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
+                    QMessageBox.warning(
+                        self, 
+                        "Authentication Error", 
+                        "Your session has expired. Please log in again."
+                    )
+                    self.logout()
+                    return
+                else:
+                    raise
+            
             # Load KPIs
             kpis = self.api_client.get_kpis()
             self.alerts_24h_card.update_value(kpis["alerts_24h"])
@@ -1205,7 +1222,16 @@ class DashboardWindow(QMainWindow):
                 self.load_users()
         
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
+            error_msg = str(e).lower()
+            if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
+                QMessageBox.warning(
+                    self, 
+                    "Authentication Error", 
+                    "Your session has expired. Please log in again."
+                )
+                self.logout()
+            else:
+                QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
     
     def load_alerts_preview(self):
         """Load alerts preview for dashboard"""

@@ -430,6 +430,10 @@ class LoginWindow(QWidget):
         self.login_btn.setText("Logging in...")
         
         try:
+            # Ensure we have a fresh API client session
+            # Clear any existing session data before login
+            self.api_client.session.cookies.clear()
+            
             result = self.api_client.login(email, password)
             
             if result.get("mfa_required"):
@@ -453,6 +457,7 @@ class LoginWindow(QWidget):
     def open_dashboard(self):
         """Open dashboard window"""
         try:
+            # Verify authentication before opening dashboard
             user = self.api_client.get_current_user()
             self.dashboard = DashboardWindow(self.api_client, user)
             self.dashboard.show()
