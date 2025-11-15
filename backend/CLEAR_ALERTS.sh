@@ -7,49 +7,63 @@ CURRENT_DIR="$(pwd)"
 
 echo "🔍 Searching for virtual environment..."
 
-# Method 1: Check running uvicorn process to find actual Python being used
 PYTHON_CMD=""
-if pgrep -f "uvicorn.*app.main:app" > /dev/null; then
-    # Get the PID of the uvicorn process
-    UVICORN_PID=$(pgrep -f "uvicorn.*app.main:app" | head -1)
+
+# Method 1: Read systemd service file directly (most reliable)
+if [ -f "/etc/systemd/system/ids-idps-backend.service" ]; then
+    echo "📋 Reading systemd service file..."
+    # Extract WorkingDirectory
+    WORK_DIR=$(grep "^WorkingDirectory=" /etc/systemd/system/ids-idps-backend.service | sed 's/WorkingDirectory=//' | tr -d ' ')
+    # Extract ExecStart to get uvicorn path
+    EXEC_START=$(grep "^ExecStart=" /etc/systemd/system/ids-idps-backend.service | sed 's/ExecStart=//' | tr -d ' ')
     
-    if [ -n "$UVICORN_PID" ]; then
-        # Method 1a: Get the actual Python executable from the process
-        if [ -f "/proc/$UVICORN_PID/exe" ]; then
-            PYTHON_EXE=$(readlink -f "/proc/$UVICORN_PID/exe" 2>/dev/null)
-            if [ -n "$PYTHON_EXE" ] && [ -f "$PYTHON_EXE" ]; then
-                PYTHON_CMD="$PYTHON_EXE"
-                echo "✅ Found Python from running backend process (PID $UVICORN_PID): $PYTHON_CMD"
+    if [ -n "$EXEC_START" ]; then
+        # Extract the uvicorn binary path (everything before "uvicorn")
+        UVICORN_BIN=$(echo "$EXEC_START" | sed 's|/uvicorn.*||')
+        if [ -n "$UVICORN_BIN" ] && [ -d "$UVICORN_BIN" ]; then
+            # uvicorn is at /path/to/venv/bin/uvicorn, so venv is the parent of bin
+            VENV_DIR=$(dirname "$UVICORN_BIN")
+            if [ -f "$VENV_DIR/python3" ]; then
+                PYTHON_CMD="$VENV_DIR/python3"
+                echo "✅ Found Python from systemd ExecStart: $PYTHON_CMD"
             fi
         fi
-        
-        # Method 1b: If that didn't work, get the uvicorn path and derive venv
-        if [ -z "$PYTHON_CMD" ]; then
-            # Get the full command line
-            UVICORN_CMD=$(cat "/proc/$UVICORN_PID/cmdline" 2>/dev/null | tr '\0' ' ')
-            # Extract uvicorn path (first argument after PID)
-            UVICORN_BIN=$(echo "$UVICORN_CMD" | awk '{print $1}')
-            if [ -n "$UVICORN_BIN" ] && [ -f "$UVICORN_BIN" ]; then
-                # uvicorn is at /path/to/venv/bin/uvicorn, so venv is parent of bin
-                VENV_DIR=$(dirname "$(dirname "$UVICORN_BIN")")
-                if [ -f "$VENV_DIR/bin/python3" ]; then
-                    PYTHON_CMD="$VENV_DIR/bin/python3"
-                    echo "✅ Found Python from uvicorn path: $PYTHON_CMD"
-                fi
+    fi
+    
+    # Also check WorkingDirectory for venv
+    if [ -z "$PYTHON_CMD" ] && [ -n "$WORK_DIR" ]; then
+        for VENV_NAME in ".venv" "venv" "env"; do
+            if [ -f "$WORK_DIR/$VENV_NAME/bin/python3" ]; then
+                PYTHON_CMD="$WORK_DIR/$VENV_NAME/bin/python3"
+                echo "✅ Found Python from systemd WorkingDirectory: $PYTHON_CMD"
+                break
             fi
+        done
+    fi
+fi
+
+# Method 2: Check running uvicorn process
+if [ -z "$PYTHON_CMD" ] && pgrep -f "uvicorn.*app.main:app" > /dev/null; then
+    UVICORN_PID=$(pgrep -f "uvicorn.*app.main:app" | head -1)
+    echo "🔍 Found running uvicorn process (PID $UVICORN_PID)"
+    
+    if [ -n "$UVICORN_PID" ] && [ -f "/proc/$UVICORN_PID/exe" ]; then
+        PYTHON_EXE=$(readlink -f "/proc/$UVICORN_PID/exe" 2>/dev/null)
+        if [ -n "$PYTHON_EXE" ] && [ -f "$PYTHON_EXE" ]; then
+            PYTHON_CMD="$PYTHON_EXE"
+            echo "✅ Found Python from running process: $PYTHON_CMD"
         fi
-        
-        # Method 1c: Get working directory and check for venv there
-        if [ -z "$PYTHON_CMD" ]; then
-            WORK_DIR=$(readlink -f "/proc/$UVICORN_PID/cwd" 2>/dev/null)
-            if [ -n "$WORK_DIR" ]; then
-                for VENV_NAME in ".venv" "venv" "env"; do
-                    if [ -f "$WORK_DIR/$VENV_NAME/bin/python3" ]; then
-                        PYTHON_CMD="$WORK_DIR/$VENV_NAME/bin/python3"
-                        echo "✅ Found Python from process working directory: $PYTHON_CMD"
-                        break
-                    fi
-                done
+    fi
+    
+    # Also try to get uvicorn path from cmdline
+    if [ -z "$PYTHON_CMD" ] && [ -f "/proc/$UVICORN_PID/cmdline" ]; then
+        UVICORN_CMD=$(cat "/proc/$UVICORN_PID/cmdline" 2>/dev/null | tr '\0' ' ')
+        UVICORN_BIN=$(echo "$UVICORN_CMD" | awk '{print $1}')
+        if [ -n "$UVICORN_BIN" ] && [ -f "$UVICORN_BIN" ]; then
+            VENV_DIR=$(dirname "$(dirname "$UVICORN_BIN")")
+            if [ -f "$VENV_DIR/bin/python3" ]; then
+                PYTHON_CMD="$VENV_DIR/bin/python3"
+                echo "✅ Found Python from uvicorn binary: $PYTHON_CMD"
             fi
         fi
     fi
@@ -116,24 +130,47 @@ if [ -z "$PYTHON_CMD" ] && [ -f "/etc/systemd/system/ids-idps-backend.service" ]
     fi
 fi
 
-# If still not found, try system python3 (last resort)
+# If still not found, show detailed debug info and try to help
 if [ -z "$PYTHON_CMD" ]; then
+    echo ""
     echo "❌ Could not find Python virtual environment"
     echo ""
-    echo "Searched locations:"
-    echo "  - Running backend process"
-    echo "  - Systemd service file: /etc/systemd/system/ids-idps-backend.service"
-    echo "  - $CURRENT_DIR/.venv/bin/python3"
-    echo "  - $CURRENT_DIR/venv/bin/python3"
-    echo "  - $CURRENT_DIR/env/bin/python3"
+    echo "📋 Debug Information:"
+    
+    # Show systemd service content
+    if [ -f "/etc/systemd/system/ids-idps-backend.service" ]; then
+        echo ""
+        echo "Systemd service file contents:"
+        echo "---"
+        grep -E "^(WorkingDirectory|ExecStart)=" /etc/systemd/system/ids-idps-backend.service || echo "  (could not read)"
+        echo "---"
+    fi
+    
+    # Show running process info
+    if pgrep -f "uvicorn.*app.main:app" > /dev/null; then
+        UVICORN_PID=$(pgrep -f "uvicorn.*app.main:app" | head -1)
+        echo ""
+        echo "Running uvicorn process (PID $UVICORN_PID):"
+        if [ -f "/proc/$UVICORN_PID/cmdline" ]; then
+            echo "  Command: $(cat /proc/$UVICORN_PID/cmdline | tr '\0' ' ')"
+        fi
+        if [ -f "/proc/$UVICORN_PID/cwd" ]; then
+            echo "  Working Dir: $(readlink -f /proc/$UVICORN_PID/cwd 2>/dev/null)"
+        fi
+        if [ -f "/proc/$UVICORN_PID/exe" ]; then
+            echo "  Executable: $(readlink -f /proc/$UVICORN_PID/exe 2>/dev/null)"
+        fi
+    fi
+    
     echo ""
-    echo "💡 To manually clear alerts, try:"
-    echo "   1. Find your venv: find ~ -name 'uvicorn' -type f 2>/dev/null | head -1"
-    echo "   2. Use that venv's python: /path/to/venv/bin/python3 clear_all_alerts.py"
+    echo "💡 Manual Solution:"
+    echo "   Run this command to find uvicorn, then use its venv's python:"
+    echo "   UVICORN=\$(which uvicorn 2>/dev/null || find / -name uvicorn -type f 2>/dev/null | head -1)"
+    echo "   VENV_DIR=\$(dirname \$(dirname \"\$UVICORN\"))"
+    echo "   \"\$VENV_DIR/bin/python3\" clear_all_alerts.py"
     echo ""
-    echo "   Or activate venv and run:"
-    echo "   source .venv/bin/activate  # or wherever your venv is"
-    echo "   python3 clear_all_alerts.py"
+    echo "   Or if you know the venv path:"
+    echo "   /path/to/venv/bin/python3 clear_all_alerts.py"
     exit 1
 fi
 
