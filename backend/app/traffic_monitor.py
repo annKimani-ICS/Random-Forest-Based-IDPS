@@ -481,6 +481,14 @@ class TrafficMonitor:
                     print(f"⏭️  Skipping duplicate alert for {src_ip} → {dst_ip} (score: {score:.3f} <= {recent.score:.3f})")
                 return
             
+            # Get most common destination port for analytics
+            dst_ports_set = stats.get('dst_ports', set())
+            most_common_dst_port = None
+            if dst_ports_set:
+                # For now, just take the first port (in production, track port counts)
+                # In a more sophisticated system, you'd track port frequency
+                most_common_dst_port = list(dst_ports_set)[0] if dst_ports_set else None
+            
             # Create new alert
             alert = Alert(
                 event_ts=datetime.utcnow(),
@@ -502,7 +510,9 @@ class TrafficMonitor:
                         'icmp': stats['icmp_count']
                     },
                     'unique_src_ports': len(stats.get('src_ports', set())),
-                    'unique_dst_ports': len(stats.get('dst_ports', set()))
+                    'unique_dst_ports': len(stats.get('dst_ports', set())),
+                    'port': most_common_dst_port,  # Add port for analytics
+                    'dst_port': most_common_dst_port  # Alternative key name
                 }
             )
             
