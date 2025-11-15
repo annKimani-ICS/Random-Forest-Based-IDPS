@@ -1415,17 +1415,11 @@ class DashboardWindow(QMainWindow):
     def load_analytics(self):
         """Load and display analytics charts"""
         try:
-            print(f"[ANALYTICS] Attempting to load analytics...")
             analytics = self.api_client.get_alert_analytics()
-            print(f"[ANALYTICS] Full response received: {analytics}")
-            print(f"[ANALYTICS] Response type: {type(analytics)}")
-            print(f"[ANALYTICS] Response keys: {list(analytics.keys()) if isinstance(analytics, dict) else 'Not a dict'}")
             
             # Update summary stats (only malicious alerts)
             total = analytics.get('total_alerts', 0)
             malicious = analytics.get('malicious_count', 0)
-            
-            print(f"[ANALYTICS] Total alerts: {total}, Malicious: {malicious}")
             
             self.total_alerts_label.setText(f"Total Alerts: {total}")
             self.malicious_label.setText(f"Malicious: {malicious}")
@@ -1433,7 +1427,6 @@ class DashboardWindow(QMainWindow):
             
             # If no alerts, show empty state instead of error
             if total == 0:
-                print("[ANALYTICS] No alerts in database - showing empty state")
                 # Clear all charts by clearing figures
                 self.score_dist_chart.figure.clear()
                 self.status_chart.figure.clear()
@@ -1447,13 +1440,9 @@ class DashboardWindow(QMainWindow):
                 self.time_series_chart.draw()
                 return
             
-            print(f"[ANALYTICS] Processing {total} alerts for charts...")
-            
             # Alert Score Distribution (Bar Chart) - Replaces Attack Type
             score_dist = analytics.get('score_distribution', {})
-            print(f"[ANALYTICS] Score distribution: {score_dist} (type: {type(score_dist)})")
             if score_dist and len(score_dist) > 0:
-                print(f"[ANALYTICS] Rendering score distribution chart with {len(score_dist)} ranges")
                 self.score_dist_chart.figure.clear()
                 ax = self.score_dist_chart.figure.add_subplot(111)
                 # Sort by severity: High, Medium, Low, Very Low
@@ -1479,9 +1468,7 @@ class DashboardWindow(QMainWindow):
                            f'{count}', ha='center', va='bottom', fontsize=9, fontweight='bold')
                 self.score_dist_chart.figure.tight_layout()
                 self.score_dist_chart.draw()
-                print(f"[ANALYTICS] Score distribution chart rendered successfully")
             else:
-                print(f"[ANALYTICS] No score distribution data available (got: {score_dist})")
                 # Draw empty chart
                 self.score_dist_chart.figure.clear()
                 ax = self.score_dist_chart.figure.add_subplot(111)
@@ -1491,9 +1478,7 @@ class DashboardWindow(QMainWindow):
             
             # Status Distribution (Pie Chart)
             statuses = analytics.get('status_distribution', {})
-            print(f"[ANALYTICS] Status distribution: {statuses} (type: {type(statuses)})")
             if statuses and len(statuses) > 0:
-                print(f"[ANALYTICS] Rendering status chart with {len(statuses)} statuses")
                 self.status_chart.figure.clear()
                 ax = self.status_chart.figure.add_subplot(111)
                 labels = list(statuses.keys())
@@ -1514,9 +1499,7 @@ class DashboardWindow(QMainWindow):
                     ax.set_title('Status Distribution', fontsize=12, fontweight='bold', pad=15)
                     self.status_chart.figure.tight_layout()
                     self.status_chart.draw()
-                    print(f"[ANALYTICS] Status chart rendered successfully")
             else:
-                print(f"[ANALYTICS] No status data available (got: {statuses})")
                 # Draw empty chart
                 self.status_chart.figure.clear()
                 ax = self.status_chart.figure.add_subplot(111)
@@ -1526,9 +1509,7 @@ class DashboardWindow(QMainWindow):
             
             # Top Source IPs (Horizontal Bar Chart)
             top_ips = analytics.get('top_source_ips', [])
-            print(f"[ANALYTICS] Top IPs: {top_ips} (type: {type(top_ips)}, length: {len(top_ips) if top_ips else 0})")
             if top_ips and len(top_ips) > 0:
-                print(f"[ANALYTICS] Rendering top IPs chart with {len(top_ips)} IPs")
                 self.top_ips_chart.figure.clear()
                 ax = self.top_ips_chart.figure.add_subplot(111)
                 # Take top 10
@@ -1547,9 +1528,7 @@ class DashboardWindow(QMainWindow):
                            f' {count}', ha='left', va='center', fontsize=9, fontweight='bold')
                 self.top_ips_chart.figure.tight_layout()
                 self.top_ips_chart.draw()
-                print(f"[ANALYTICS] Top IPs chart rendered successfully")
             else:
-                print(f"[ANALYTICS] No top IPs data available (got: {top_ips})")
                 # Draw empty chart
                 self.top_ips_chart.figure.clear()
                 ax = self.top_ips_chart.figure.add_subplot(111)
@@ -1559,9 +1538,7 @@ class DashboardWindow(QMainWindow):
             
             # Top Destination Ports (Horizontal Bar Chart) - New
             top_ports = analytics.get('top_destination_ports', [])
-            print(f"[ANALYTICS] Top Ports: {top_ports} (type: {type(top_ports)}, length: {len(top_ports) if top_ports else 0})")
             if top_ports and len(top_ports) > 0:
-                print(f"[ANALYTICS] Rendering top ports chart with {len(top_ports)} ports")
                 self.top_ports_chart.figure.clear()
                 ax = self.top_ports_chart.figure.add_subplot(111)
                 # Take top 10
@@ -1588,9 +1565,7 @@ class DashboardWindow(QMainWindow):
                            f' {count}', ha='left', va='center', fontsize=9, fontweight='bold')
                 self.top_ports_chart.figure.tight_layout()
                 self.top_ports_chart.draw()
-                print(f"[ANALYTICS] Top ports chart rendered successfully")
             else:
-                print(f"[ANALYTICS] No top ports data available (got: {top_ports})")
                 # Draw empty chart
                 self.top_ports_chart.figure.clear()
                 ax = self.top_ports_chart.figure.add_subplot(111)
@@ -1600,9 +1575,7 @@ class DashboardWindow(QMainWindow):
             
             # Alerts Over Time (Line Chart)
             time_series = analytics.get('alerts_over_time', [])
-            print(f"[ANALYTICS] Time series: {time_series} (type: {type(time_series)}, length: {len(time_series) if time_series else 0})")
             if time_series and len(time_series) > 0:
-                print(f"[ANALYTICS] Rendering time series chart with {len(time_series)} data points")
                 self.time_series_chart.figure.clear()
                 ax = self.time_series_chart.figure.add_subplot(111)
                 dates = [item['date'] for item in time_series]
@@ -1621,17 +1594,13 @@ class DashboardWindow(QMainWindow):
                 # Adjust bottom margin to prevent label cutoff
                 self.time_series_chart.figure.subplots_adjust(bottom=0.25)
                 self.time_series_chart.draw()
-                print(f"[ANALYTICS] Time series chart rendered successfully")
             else:
-                print(f"[ANALYTICS] No time series data available (got: {time_series})")
                 # Draw empty chart
                 self.time_series_chart.figure.clear()
                 ax = self.time_series_chart.figure.add_subplot(111)
                 ax.text(0.5, 0.5, 'No time series data', ha='center', va='center', transform=ax.transAxes)
                 ax.set_title('Alerts Over Time', fontsize=12, fontweight='bold')
                 self.time_series_chart.draw()
-            
-            print(f"[ANALYTICS] All charts processed. Summary: Total={total}, ScoreDist={len(score_dist) if score_dist else 0}, Statuses={len(statuses) if statuses else 0}, TopIPs={len(top_ips) if top_ips else 0}, TopPorts={len(top_ports) if top_ports else 0}, TimeSeries={len(time_series) if time_series else 0}")
                 
         except Exception as e:
             print(f"Error loading analytics: {e}")
@@ -1895,10 +1864,6 @@ class DashboardWindow(QMainWindow):
             interface = status_data.get("interface", "N/A")
             threshold = status_data.get("threshold", 0.50)
             
-            # Debug logging
-            print(f"[DEBUG] Status check: is_monitoring={is_monitoring}, interface={interface}, threshold={threshold}")
-            print(f"[DEBUG] Full status response: {status_data}")
-            
             if is_monitoring:
                 self.monitoring_status_label.setText("Status: ✅ ACTIVE")
                 self.monitoring_status_label.setStyleSheet("color: #10b981; font-weight: bold;")
@@ -1906,7 +1871,6 @@ class DashboardWindow(QMainWindow):
                     self.start_monitoring_btn.setEnabled(False)
                 if hasattr(self, 'stop_monitoring_btn'):
                     self.stop_monitoring_btn.setEnabled(True)
-                print("[DEBUG] Status updated to ACTIVE")
             else:
                 self.monitoring_status_label.setText("Status: ⏸ INACTIVE")
                 self.monitoring_status_label.setStyleSheet("color: #64748b; font-weight: bold;")
@@ -1914,7 +1878,6 @@ class DashboardWindow(QMainWindow):
                     self.start_monitoring_btn.setEnabled(True)
                 if hasattr(self, 'stop_monitoring_btn'):
                     self.stop_monitoring_btn.setEnabled(False)
-                print("[DEBUG] Status updated to INACTIVE")
             
             if hasattr(self, 'monitoring_interface_label'):
                 self.monitoring_interface_label.setText(f"Interface: {interface or 'N/A'}")
@@ -1954,9 +1917,8 @@ class DashboardWindow(QMainWindow):
             if hasattr(self, 'monitoring_threshold_label'):
                 self.monitoring_threshold_label.setText("Threshold: Unknown")
             
-            print(f"[ERROR] Error updating monitoring status: {e}")
-            import traceback
-            traceback.print_exc()
+            # Error handled gracefully in UI
+            pass
     
     def start_monitoring(self):
         """Start traffic monitoring"""
@@ -2003,17 +1965,14 @@ class DashboardWindow(QMainWindow):
                 # Retry status check a few times with delays (non-blocking)
                 def check_status_attempt(attempt_num=1, max_attempts=6):
                     """Check status with retries (non-blocking)"""
-                    print(f"[DEBUG] Status check attempt {attempt_num}/{max_attempts}")
                     try:
                         status_data = self.api_client.get_monitoring_status()
-                        print(f"[DEBUG] Status response on attempt {attempt_num}: {status_data}")
                         if status_data.get("is_monitoring", False):
                             # Status is now active, update UI
-                            print("[DEBUG] Monitoring is active, updating UI")
                             self.update_monitoring_status()
                             return
                     except Exception as e:
-                        print(f"[DEBUG] Status check error on attempt {attempt_num}: {e}")
+                        pass
                     
                     # Schedule next attempt if not exceeded max attempts
                     if attempt_num < max_attempts:

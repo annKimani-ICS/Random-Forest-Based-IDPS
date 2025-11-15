@@ -298,7 +298,6 @@ async def get_alert_analytics(
         query = query.filter(Alert.event_ts <= to_date)
     
     alerts = query.all()
-    print(f"[BACKEND] Analytics query: found {len(alerts)} alerts (from_date={from_date}, to_date={to_date})")
     
     # Attack type distribution
     attack_type_dist = defaultdict(int)
