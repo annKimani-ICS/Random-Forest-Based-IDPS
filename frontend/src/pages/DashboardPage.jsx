@@ -297,8 +297,6 @@ function DashboardPage() {
                   />
                   <Line 
                     type="monotone" 
-                  <Line 
-                    type="monotone" 
                     dataKey="total_attacks" 
                     name="Total" 
                     stroke="#2563eb" 
@@ -463,8 +461,6 @@ function DashboardPage() {
                         dot={{ r: 4 }}
                         activeDot={{ r: 6 }}
                       />
-                      <Line 
-                        type="monotone" 
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -483,8 +479,6 @@ function DashboardPage() {
                 <span className="summary-label">Malicious:</span>
                 <span className="summary-value" style={{ color: '#ef4444' }}>{alertAnalytics.malicious_count}</span>
               </div>
-              <div className="summary-item">
-            </div>
           </div>
         )}
 
