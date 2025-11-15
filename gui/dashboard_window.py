@@ -7,9 +7,9 @@ from PyQt5.QtWidgets import (
     QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
     QComboBox, QMessageBox, QTabWidget, QGroupBox, QGridLayout,
     QSlider, QFrame, QDialog, QLineEdit, QTextEdit, QSpinBox,
-    QScrollArea
+    QScrollArea, QDesktopWidget
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread, QRect
 from PyQt5.QtGui import QFont, QColor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -191,7 +191,27 @@ class DashboardWindow(QMainWindow):
         self.is_admin = user.get("role") == "ADMIN"
         
         self.setWindowTitle("IDS/IDPS Admin Dashboard")
-        self.setGeometry(100, 100, 1400, 900)
+        
+        # Get screen dimensions and set appropriate window size
+        desktop = QDesktopWidget()
+        screen_geometry = desktop.availableGeometry()
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+        
+        # Use 90% of screen size, but cap at reasonable maximums
+        window_width = min(int(screen_width * 0.9), 1600)
+        window_height = min(int(screen_height * 0.9), 1000)
+        
+        # Set minimum size to prevent window from being too small
+        self.setMinimumSize(1200, 700)
+        
+        # Set maximum size to screen size
+        self.setMaximumSize(screen_width, screen_height)
+        
+        # Center the window on screen
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        self.setGeometry(x, y, window_width, window_height)
         
         # Auto-refresh timer
         self.refresh_timer = QTimer()
