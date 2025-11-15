@@ -268,14 +268,15 @@ async def get_alert_analytics(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get alert analytics including attack type distribution, status distribution, top IPs, and time series"""
+    """Get alert analytics including attack type distribution, status distribution, top IPs, and time series - Only malicious alerts"""
     from collections import defaultdict
     
     # Default to last 7 days
     if from_date is None and to_date is None:
         from_date = datetime.utcnow() - timedelta(days=7)
     
-    query = db.query(Alert)
+    # Only get malicious alerts (system only processes malicious alerts)
+    query = db.query(Alert).filter(Alert.is_malicious == True)
     if from_date:
         query = query.filter(Alert.event_ts >= from_date)
     if to_date:
