@@ -1444,7 +1444,10 @@ class DashboardWindow(QMainWindow):
                 ax.set_title('Alerts Over Time', fontsize=12, fontweight='bold', pad=15)
                 ax.legend(loc='upper left', fontsize=10)
                 ax.grid(alpha=0.3, linestyle='--')
-                ax.tick_params(axis='x', rotation=45, ha='right', labelsize=9)
+                ax.tick_params(axis='x', rotation=45, labelsize=9)
+                # Set horizontal alignment for rotated labels
+                for label in ax.get_xticklabels():
+                    label.set_ha('right')
                 self.time_series_chart.figure.tight_layout()
                 self.time_series_chart.draw()
             else:
