@@ -589,6 +589,18 @@ class DashboardWindow(QMainWindow):
     
     def create_analytics_tab(self):
         """Create analytics tab with charts"""
+        # Use scroll area to ensure all charts are visible
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: #f8fafc;
+            }
+        """)
+        
         widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(15, 15, 15, 15)
@@ -658,8 +670,8 @@ class DashboardWindow(QMainWindow):
         attack_type_group.setStyleSheet(chart_style)
         attack_type_layout = QVBoxLayout()
         attack_type_layout.setContentsMargins(5, 5, 5, 5)
-        self.attack_type_chart = FigureCanvas(Figure(figsize=(8, 5)))
-        self.attack_type_chart.setMinimumHeight(400)
+        self.attack_type_chart = FigureCanvas(Figure(figsize=(7, 4.5)))
+        self.attack_type_chart.setMinimumHeight(350)
         attack_type_layout.addWidget(self.attack_type_chart)
         attack_type_group.setLayout(attack_type_layout)
         charts_layout.addWidget(attack_type_group, 0, 0)
@@ -669,8 +681,8 @@ class DashboardWindow(QMainWindow):
         status_group.setStyleSheet(chart_style)
         status_layout = QVBoxLayout()
         status_layout.setContentsMargins(5, 5, 5, 5)
-        self.status_chart = FigureCanvas(Figure(figsize=(8, 5)))
-        self.status_chart.setMinimumHeight(400)
+        self.status_chart = FigureCanvas(Figure(figsize=(7, 4.5)))
+        self.status_chart.setMinimumHeight(350)
         status_layout.addWidget(self.status_chart)
         status_group.setLayout(status_layout)
         charts_layout.addWidget(status_group, 0, 1)
@@ -680,8 +692,8 @@ class DashboardWindow(QMainWindow):
         top_ips_group.setStyleSheet(chart_style)
         top_ips_layout = QVBoxLayout()
         top_ips_layout.setContentsMargins(5, 5, 5, 5)
-        self.top_ips_chart = FigureCanvas(Figure(figsize=(8, 5)))
-        self.top_ips_chart.setMinimumHeight(400)
+        self.top_ips_chart = FigureCanvas(Figure(figsize=(7, 4.5)))
+        self.top_ips_chart.setMinimumHeight(350)
         top_ips_layout.addWidget(self.top_ips_chart)
         top_ips_group.setLayout(top_ips_layout)
         charts_layout.addWidget(top_ips_group, 1, 0)
@@ -691,8 +703,8 @@ class DashboardWindow(QMainWindow):
         time_series_group.setStyleSheet(chart_style)
         time_series_layout = QVBoxLayout()
         time_series_layout.setContentsMargins(5, 5, 5, 5)
-        self.time_series_chart = FigureCanvas(Figure(figsize=(18, 6)))
-        self.time_series_chart.setMinimumHeight(500)
+        self.time_series_chart = FigureCanvas(Figure(figsize=(16, 5.5)))
+        self.time_series_chart.setMinimumHeight(450)
         time_series_layout.addWidget(self.time_series_chart)
         time_series_group.setLayout(time_series_layout)
         charts_layout.addWidget(time_series_group, 2, 0, 1, 2)  # Span both columns, row 2
@@ -701,7 +713,8 @@ class DashboardWindow(QMainWindow):
         layout.addStretch()
         
         widget.setLayout(layout)
-        return widget
+        scroll_area.setWidget(widget)
+        return scroll_area
     
     def create_alerts_tab(self):
         """Create alerts management tab"""
@@ -1415,6 +1428,8 @@ class DashboardWindow(QMainWindow):
                 ax.set_xticks(range(len(types)))
                 ax.set_xticklabels(types, rotation=45, ha='right', fontsize=9)
                 ax.grid(axis='y', alpha=0.3, linestyle='--')
+                # Adjust bottom margin to prevent label cutoff
+                self.attack_type_chart.figure.subplots_adjust(bottom=0.25)
                 # Add value labels on bars
                 for i, (bar, count) in enumerate(zip(bars, counts)):
                     height = bar.get_height()
@@ -1499,7 +1514,8 @@ class DashboardWindow(QMainWindow):
                 # Set horizontal alignment for rotated labels
                 for label in ax.get_xticklabels():
                     label.set_ha('right')
-                self.time_series_chart.figure.tight_layout()
+                # Adjust bottom margin to prevent label cutoff
+                self.time_series_chart.figure.subplots_adjust(bottom=0.25)
                 self.time_series_chart.draw()
             else:
                 print("No time series data available")
