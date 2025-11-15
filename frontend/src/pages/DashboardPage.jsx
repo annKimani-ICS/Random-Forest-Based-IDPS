@@ -41,11 +41,12 @@ function DashboardPage() {
       const [kpisRes, metricsRes, alertsRes, trendsRes, analyticsRes] = await Promise.all([
         dashboardAPI.getKPIs(),
         dashboardAPI.getMetrics(),
-        dashboardAPI.getAlerts({
-          page: currentPage,
-          page_size: 25,
-          ...filters
-        }),
+      dashboardAPI.getAlerts({
+        page: currentPage,
+        page_size: 25,
+        malicious: true,  // Only get malicious alerts
+        ...filters
+      }),
         dashboardAPI.getAttackTrends(8),
         dashboardAPI.getAlertAnalytics().catch(err => {
           console.error('Error loading analytics:', err);
@@ -55,8 +56,10 @@ function DashboardPage() {
 
       setKpis(kpisRes.data);
       setMetrics(metricsRes.data);
-      setAlerts(alertsRes.data.alerts);
-      setTotalAlerts(alertsRes.data.total);
+      // Filter out any benign alerts that might have slipped through
+      const maliciousAlerts = alertsRes.data.alerts.filter(alert => alert.is_malicious === true);
+      setAlerts(maliciousAlerts);
+      setTotalAlerts(maliciousAlerts.length);
       setTrends(trendsRes.data.trends);
       
       // Set analytics only if we got valid data
@@ -266,7 +269,6 @@ function DashboardPage() {
                           }}>
                             <p style={{ fontWeight: 'bold' }}>Week of {data.week_start}</p>
                             <p style={{ color: '#ef4444' }}>Malicious: {data.malicious_count}</p>
-                            <p style={{ color: '#10b981' }}>Benign: {data.benign_count}</p>
                             <p style={{ fontWeight: 'bold' }}>Total: {data.total_attacks}</p>
                             {Object.keys(data.attack_types).length > 0 && (
                               <>
@@ -295,13 +297,6 @@ function DashboardPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="benign_count" 
-                    name="Benign" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
                   <Line 
                     type="monotone" 
                     dataKey="total_attacks" 
@@ -470,13 +465,6 @@ function DashboardPage() {
                       />
                       <Line 
                         type="monotone" 
-                        dataKey="benign" 
-                        name="Benign" 
-                        stroke="#10b981" 
-                        strokeWidth={2.5}
-                        dot={{ r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -496,9 +484,6 @@ function DashboardPage() {
                 <span className="summary-value" style={{ color: '#ef4444' }}>{alertAnalytics.malicious_count}</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Benign:</span>
-                <span className="summary-value" style={{ color: '#10b981' }}>{alertAnalytics.benign_count}</span>
-              </div>
             </div>
           </div>
         )}
@@ -523,7 +508,6 @@ function DashboardPage() {
               >
                 <option value="">All Alerts</option>
                 <option value="true">Malicious Only</option>
-                <option value="false">Benign Only</option>
               </select>
               <select
                 value={filters.status}
@@ -558,12 +542,12 @@ function DashboardPage() {
                     <td><code>{alert.src_ip}</code></td>
                     <td><code>{alert.dst_ip}</code></td>
                     <td>
-                      <span className={`badge ${alert.is_malicious ? 'badge-danger' : 'badge-success'}`}>
+                      <span className="badge badge-danger">
                         {alert.attack_type}
                       </span>
                     </td>
                     <td>
-                      <span className={alert.is_malicious ? 'text-danger' : 'text-success'}>
+                      <span className="text-danger">
                         {alert.score.toFixed(4)}
                       </span>
                     </td>
@@ -582,7 +566,7 @@ function DashboardPage() {
                             ACK
                           </button>
                         )}
-                        {(alert.status === 'NEW' || alert.status === 'ACK') && alert.is_malicious && (
+                        {(alert.status === 'NEW' || alert.status === 'ACK') && (
                           <button
                             className="btn-small btn-danger"
                             onClick={() => handleBlockIP(alert.src_ip)}

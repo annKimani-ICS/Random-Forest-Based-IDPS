@@ -24,12 +24,13 @@ if ! python3 -c "import sqlalchemy" 2>/dev/null; then
     echo "✅ Dependencies installed"
 fi
 
-# Remove any existing benign alerts first (if script exists)
-if [ -f "remove_benign_alerts.py" ]; then
-    echo "🧹 Removing any existing benign alerts..."
-    python3 remove_benign_alerts.py || echo "⚠️  Could not remove benign alerts (may not exist)"
-else
-    echo "⚠️  remove_benign_alerts.py not found, skipping benign alert removal"
+# Force remove ALL benign alerts first (by flag and by score)
+if [ -f "force_remove_all_benign.py" ]; then
+    echo "🧹 Force removing ALL benign alerts (by flag and by score)..."
+    python3 force_remove_all_benign.py || echo "⚠️  Could not remove benign alerts"
+elif [ -f "remove_benign_alerts.py" ]; then
+    echo "🧹 Removing benign alerts..."
+    python3 remove_benign_alerts.py || echo "⚠️  Could not remove benign alerts"
 fi
 
 # Run the script (only creates malicious alerts)
