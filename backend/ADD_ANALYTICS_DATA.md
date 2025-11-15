@@ -4,9 +4,21 @@ To see the analytics charts with sample data, run one of these scripts:
 
 ## Quick Method (Recommended)
 
+**Important:** Make sure you're in the virtual environment first!
+
 ```bash
 cd backend
-python add_analytics_dummy_data.py
+
+# Activate virtual environment (if it exists)
+source .venv/bin/activate
+
+# If virtual environment doesn't exist, create it:
+# python3 -m venv .venv
+# source .venv/bin/activate
+# pip install -r requirements.txt
+
+# Now run the script
+python3 add_analytics_dummy_data.py
 ```
 
 This script creates 50 alerts with:
