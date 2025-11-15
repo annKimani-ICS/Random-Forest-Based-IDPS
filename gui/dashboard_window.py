@@ -216,7 +216,9 @@ class DashboardWindow(QMainWindow):
         # Auto-refresh timer
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh_data)
-        self.refresh_timer.start(30000)  # Refresh every 30 seconds
+        # Start refresh timer after initial delay to avoid checking auth immediately after login
+        QTimer.singleShot(5000, lambda: self.refresh_timer.start(30000))  # Start after 5 seconds, then every 30 seconds
+        self._refresh_count = 0  # Track refresh count to skip auth check on first few refreshes
         
         self.setup_ui()
         self.load_data()
@@ -2037,23 +2039,29 @@ class DashboardWindow(QMainWindow):
     def refresh_data(self):
         """Refresh all data (called by timer)"""
         try:
+            # Skip auth check for first 2 refreshes (first minute) to avoid false positives after login
+            self._refresh_count = getattr(self, '_refresh_count', 0) + 1
+            
             # Verify authentication on refresh (session might have expired)
-            try:
-                self.api_client.get_current_user()
-            except Exception as auth_error:
-                error_msg = str(auth_error).lower()
-                if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
-                    # Session expired - stop timer and logout
-                    self.refresh_timer.stop()
-                    QMessageBox.warning(
-                        self, 
-                        "Session Expired", 
-                        "Your session has expired. Please log in again."
-                    )
-                    self.logout(skip_confirmation=True)
-                    return
-                else:
-                    raise
+            # But skip check for first 2 refreshes to avoid false positives right after login
+            if self._refresh_count > 2:
+                try:
+                    self.api_client.get_current_user()
+                except Exception as auth_error:
+                    error_msg = str(auth_error).lower()
+                    if "not authenticated" in error_msg or "401" in error_msg or "unauthorized" in error_msg:
+                        # Session expired - stop timer and logout
+                        self.refresh_timer.stop()
+                        QMessageBox.warning(
+                            self, 
+                            "Session Expired", 
+                            "Your session has expired. Please log in again."
+                        )
+                        self.logout(skip_confirmation=True)
+                        return
+                    else:
+                        raise
+            
             self.load_data()
             if self.is_admin and hasattr(self, 'update_monitoring_status'):
                 self.update_monitoring_status()
