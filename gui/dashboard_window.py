@@ -1257,11 +1257,6 @@ class DashboardWindow(QMainWindow):
             print(f"Error loading alerts preview: {e}")
             import traceback
             traceback.print_exc()
-        
-        except Exception as e:
-            print(f"Error loading alerts preview: {e}")
-            import traceback
-            traceback.print_exc()
             # Show error in table
             self.preview_table.setRowCount(1)
             self.preview_table.setSpan(0, 0, 1, 6)
