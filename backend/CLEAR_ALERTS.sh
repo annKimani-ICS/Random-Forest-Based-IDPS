@@ -1,31 +1,44 @@
 #!/bin/bash
 # Simple script to clear all alerts from database
-# Uses the same approach as the working setup scripts
+# Uses the systemd service's Python environment
 
 cd "$(dirname "$0")"
 
-echo "🔍 Checking virtual environment..."
-
-# Find virtual environment
-if [ -d ".venv" ]; then
-    VENV_PATH=".venv"
-elif [ -d "venv" ]; then
-    VENV_PATH="venv"
-elif [ -d "env" ]; then
-    VENV_PATH="env"
+# Get the Python path from systemd service (if it exists)
+# This matches how the backend service runs
+if [ -f "/etc/systemd/system/ids-idps-backend.service" ]; then
+    # Extract Python path from systemd service
+    SERVICE_PYTHON=$(grep "ExecStart" /etc/systemd/system/ids-idps-backend.service | sed 's/.*ExecStart=//' | sed 's|/uvicorn.*||')
+    if [ -n "$SERVICE_PYTHON" ] && [ -f "$SERVICE_PYTHON/python3" ]; then
+        PYTHON_CMD="$SERVICE_PYTHON/python3"
+        echo "✅ Using Python from systemd service: $PYTHON_CMD"
+    elif [ -n "$SERVICE_PYTHON" ] && [ -f "$SERVICE_PYTHON/python" ]; then
+        PYTHON_CMD="$SERVICE_PYTHON/python"
+        echo "✅ Using Python from systemd service: $PYTHON_CMD"
+    else
+        # Fallback: try to find venv
+        if [ -d ".venv" ] && [ -f ".venv/bin/python3" ]; then
+            PYTHON_CMD=".venv/bin/python3"
+        elif [ -d ".venv" ] && [ -f ".venv/bin/python" ]; then
+            PYTHON_CMD=".venv/bin/python"
+        else
+            PYTHON_CMD="python3"
+        fi
+    fi
 else
-    echo "❌ Virtual environment not found!"
-    echo "   Please ensure the backend is set up properly"
-    exit 1
+    # No systemd service, try venv or system python
+    if [ -d ".venv" ] && [ -f ".venv/bin/python3" ]; then
+        PYTHON_CMD=".venv/bin/python3"
+    elif [ -d ".venv" ] && [ -f ".venv/bin/python" ]; then
+        PYTHON_CMD=".venv/bin/python"
+    else
+        PYTHON_CMD="python3"
+    fi
 fi
-
-# Activate virtual environment
-echo "🔌 Activating virtual environment..."
-source "$VENV_PATH/bin/activate"
 
 # Run the clear script
 echo "🧹 Clearing all alerts from database..."
-python3 clear_all_alerts.py 2>/dev/null || python clear_all_alerts.py
+$PYTHON_CMD clear_all_alerts.py
 
 echo ""
 echo "✅ Done! Database is clean. Only malicious alerts will appear when you simulate attacks."

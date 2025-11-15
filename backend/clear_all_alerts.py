@@ -2,8 +2,20 @@
 Simple script to clear all alerts from the database
 Run this to start fresh - only malicious alerts will be created when you simulate attacks
 """
-from app.database import SessionLocal
-from app.models import Alert
+import sys
+import os
+
+# Add current directory to path (same as other working scripts)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+try:
+    from app.database import SessionLocal
+    from app.models import Alert
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    print("💡 Make sure you're running this from the backend directory")
+    print("   and that dependencies are installed")
+    sys.exit(1)
 
 def clear_all_alerts():
     """Clear all alerts from database"""
@@ -41,4 +53,3 @@ if __name__ == "__main__":
     print("🚀 Clearing All Alerts from Database...\n")
     clear_all_alerts()
     print("\n🎉 Done! Database is clean and ready for attack simulation.")
-
