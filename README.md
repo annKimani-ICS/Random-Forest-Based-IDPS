@@ -1,18 +1,18 @@
 # Random Forest-Based Intrusion Detection & Prevention System (IDPS)
 
-## 📖 Overview
+## Overview
 This project implements a **machine learning-based Intrusion Detection and Prevention System (IDPS)** for detecting and mitigating **Denial-of-Service (DoS) attacks** in corporate networks.  
 It uses the **Random Forest algorithm** trained on the **CIC-DDoS2019 dataset**, optimized for accuracy and practical deployment in Kenyan enterprise environments.  
 A **Graphical User Interface (GUI)** provides real-time traffic monitoring, alert management, and report generation.
 
-## 🎯 Objectives
+## Objectives
 - Detect and classify malicious DoS traffic with high accuracy.
 - Isolate and block suspicious traffic in real-time.
 - Provide a usable **GUI dashboard** for administrators.
 - Support explainability with feature importance and SHAP analysis.
 - Deliver a modular, scalable solution aligned with enterprise security needs.
 
-## 🏗️ System Features
+## System Features
 
 ### Core Functionality
 - **Data Preprocessing:** Cleaning, scaling, and feature engineering pipeline
@@ -33,24 +33,24 @@ A **Graphical User Interface (GUI)** provides real-time traffic monitoring, aler
 - **Audit Logging:** Comprehensive event logging for security
 - **API Documentation:** Auto-generated Swagger/OpenAPI docs
 
-## 📂 Repository Structure
+## Repository Structure
 ```
 Random-Forest-Based-IDPS/
 │
-├── 🔧 Automation Scripts
+├── Automation Scripts
 │   ├── setup.sh              # Complete project setup
 │   ├── run_backend.sh         # Start backend with venv
 │   ├── run_gui.sh            # Start GUI with venv
 │   └── run_full_system.sh    # Start both backend & GUI
 │
-├── 🖥️ GUI Application
+├── GUI Application
 │   ├── gui/
 │   │   ├── main.py           # GUI entry point
 │   │   ├── login_window.py   # Login & MFA dialogs
 │   │   ├── dashboard_window.py # Main dashboard
 │   │   └── api_client.py     # Backend communication
 │
-├── ⚙️ Backend API
+├── Backend API
 │   ├── backend/
 │   │   ├── app/
 │   │   │   ├── main.py       # FastAPI application
@@ -59,20 +59,20 @@ Random-Forest-Based-IDPS/
 │   │   │   ├── models.py     # Database models
 │   │   │   └── routers/      # API endpoints
 │
-├── 📚 Documentation
+├── Documentation
 │   ├── README.md             # Main project docs
 │   ├── README_MFA.md         # MFA overview
 │   ├── QUICK_START_MFA.md    # Quick MFA setup
 │   ├── MFA_SETUP_GUIDE.md    # Complete MFA guide
 │   └── MFA_VISUAL_GUIDE.md   # Visual MFA walkthrough
 │
-├── 📊 Analysis & Models
+├── Analysis & Models
 │   ├── notebooks/            # Jupyter notebooks
 │   ├── config/              # Model configurations
 │   ├── models/              # Trained ML models
 │   └── reports/             # Evaluation reports
 │
-└── 🔧 Configuration
+└── Configuration
     ├── requirements.txt      # Python dependencies
     ├── .gitignore          # Ignored files
     └── venv/               # Virtual environment (created by setup)
@@ -81,7 +81,7 @@ Random-Forest-Based-IDPS/
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 - **Python** – Core development
 - **scikit-learn** – Random Forest training & evaluation
 - **pandas, numpy** – Data preprocessing
@@ -92,7 +92,7 @@ Random-Forest-Based-IDPS/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Quick Setup (Recommended)
 
@@ -179,22 +179,22 @@ If you prefer manual setup or encounter issues with the automated scripts:
    python main.py
    ```
 
-### 🔐 Multi-Factor Authentication Setup
+### Multi-Factor Authentication Setup
 
 This system includes **TOTP-based Multi-Factor Authentication** using Google Authenticator:
 
-1. **After logging in**, navigate to the **🔐 Security** tab
+1. **After logging in**, navigate to the **Security** tab
 2. **Click "Enable Two-Factor Authentication"**
 3. **Scan QR code** with Google Authenticator app
 4. **Enter verification code** to activate
 5. **Save recovery codes** for backup access
 
-📚 **Detailed MFA guides:**
+**Detailed MFA guides:**
 - `QUICK_START_MFA.md` - Quick 5-minute setup
 - `MFA_SETUP_GUIDE.md` - Complete admin guide
 - `README_MFA.md` - MFA documentation index
 
-#📊 **Results (Fourth Iteration)**
+#**Results (Fourth Iteration)**
 **Performance Metrics:**
 Accuracy: 90.48%
 F1-Score: 90.51%
@@ -230,19 +230,19 @@ High-performance detection of DDoS attack flows with real-time processing capabi
 +20.31% Accuracy improvement over Iteration 3
 99%+ faster training compared to initial iterations
 
-#📌 **Roadmap**
+#**Roadmap**
  Sprint 1 – Data Cleaning & Preprocessing
  Sprint 2 – Model Training & Evaluation
  Sprint 3 – GUI Development (PyQt5 Dashboard)
  Sprint 4 – Integration with VM Simulation (Ubuntu + Kali)
  Sprint 5 – Final Evaluation & Defense
 
-#👩‍💻 **Author**:
+#**Author**:
 Kimani Ann Wangari
 BSc Informatics and Computer Science, Strathmore University, Nairobi, Kenya
 Supervisor: Mr. James Gikera
 
-#📜 **License**:
+#**License**:
 This project is for academic and research purposes only. Unauthorized use in production environments is not advised without further security hardening.
 
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/F63P1L7A)
