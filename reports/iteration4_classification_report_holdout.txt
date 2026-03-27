@@ -1,0 +1,13 @@
+Iteration 4 - Holdout Set Classification Report
+======================================================================
+
+              precision    recall  f1-score   support
+
+    Class -2       1.00      0.96      0.98        25
+    Class -1       0.95      0.89      0.92      1217
+     Class 0       0.89      0.92      0.90      2535
+     Class 1       0.87      0.87      0.87      1223
+
+    accuracy                           0.90      5000
+   macro avg       0.93      0.91      0.92      5000
+weighted avg       0.90      0.90      0.90      5000

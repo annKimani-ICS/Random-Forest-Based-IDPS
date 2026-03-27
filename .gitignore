@@ -1,0 +1,59 @@
+# Ignore all datasets
+data/**
+!data/.gitkeep   # allow an empty placeholder file
+
+# Ignore model artifacts (except iteration 4)
+models/**
+!models/best_rf_iteration4_voting_ensemble.pkl
+!models/scaler_iteration4.pkl
+!models/feature_selection_iteration4.json
+!models/imputer_iteration4.pkl
+!models/label_encoder_iteration3.pkl
+!models/.gitkeep
+notebooks/models/**
+notebooks/reports/**
+
+# Ignore large pickle files
+*.pkl
+
+# Ignore notebooks model outputs (except iteration 4)
+notebooks/models/**
+!notebooks/models/rf_multiclass_iteration4.pkl
+
+# Ignore other large files
+*.pkl
+!models/best_rf_iteration4_voting_ensemble.pkl
+!models/scaler_iteration4.pkl
+!models/imputer_iteration4.pkl
+!models/label_encoder_iteration3.pkl
+!notebooks/models/rf_multiclass_iteration4.pkl
+
+# Ignore datasets
+*.csv
+!data/.gitkeep
+
+# Ignore environment and credentials
+*.env
+.env
+.env.*
+!.env.example
+!**/.env.example
+**/credentials*.txt
+**/credentials*.json
+**/secrets*.env
+**/secrets*.txt
+**/secrets*.json
+**/.secrets
+
+# Ignore specific large files
+*.json
+!package.json
+!config/*.yaml
+!**/feature_selection*.json
+!models/feature_selection_iteration4.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

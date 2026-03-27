@@ -1,0 +1,13 @@
+Iteration 4 - Test Set Classification Report
+======================================================================
+
+              precision    recall  f1-score   support
+
+    Class -2       0.96      0.98      0.97        50
+    Class -1       0.96      0.90      0.93      2434
+     Class 0       0.91      0.91      0.91      5069
+     Class 1       0.86      0.90      0.88      2447
+
+    accuracy                           0.90     10000
+   macro avg       0.92      0.92      0.92     10000
+weighted avg       0.91      0.90      0.91     10000
